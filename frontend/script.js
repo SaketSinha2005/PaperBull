@@ -96,37 +96,65 @@ function renderCandles(containerId, candles, opts){
   container.innerHTML = svg;
 }
 
-/* ---------- ticker strip (landing page only) ---------- */
-const tickerData = [
-  {sym:'RELIANCE', chg:'+1.24%'},
-  {sym:'TCS', chg:'-0.32%'},
-  {sym:'NIFTY 25', chg:'+0.45%'},
-  {sym:'HDFCBANK', chg:'+1.08%'},
-  {sym:'INFY', chg:'+0.62%'},
-  {sym:'ICICIBANK', chg:'+1.23%'},
-  {sym:'SBIN', chg:'+0.53%'},
-  {sym:'ITC', chg:'-0.16%'},
-  {sym:'KOTAKBANK', chg:'+0.29%'},
-];
-function buildTicker(){
-  const track = document.getElementById('tickerTrack');
-  if(!track) return;
-  const set = tickerData.map(t=>{
-    const cls = t.chg.startsWith('-') ? 'down' : 'up';
-    const arrow = cls === 'up' ? '▲' : '▼';
-    return `<span class="tick">${t.sym} <b>${(24000+Math.random()*900).toFixed(2)}</b> <span class="${cls}">${arrow} ${t.chg}</span></span>`;
-  }).join('');
-  track.innerHTML = set + set; // duplicate for seamless loop
+/* ---------- live data integration ---------- */
+let isMarketDataLoaded = false;
+let basePrice = 24523; // Fallback
+
+async function fetchLiveMarketData() {
+  try {
+    // Call the Python backend
+    const response = await fetch('http://localhost:8000/api/live-indices');
+    const data = await response.json();
+    
+    // 1. Build the scrolling Ticker Strip
+    const track = document.getElementById('tickerTrack');
+    if (track && data.length > 0) {
+      const set = data.map(t => {
+        const cls = t.is_up ? 'up' : 'down';
+        const arrow = t.is_up ? '▲' : '▼';
+        const priceFmt = t.price.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        return `<span class="tick">${t.sym} <b>${priceFmt}</b> <span class="${cls}">${arrow} ${t.chg}</span></span>`;
+      }).join('');
+      
+      track.innerHTML = set + set; // duplicate for seamless loop
+    }
+
+    // 2. Update the NIFTY 50 live card only
+    const nifty50 = data.find(t => t.sym === 'NIFTY 50');
+    if (nifty50) {
+      const priceFmt = nifty50.price.toLocaleString('en-IN', {minimumFractionDigits: 2});
+      const arrow = nifty50.is_up ? '▲' : '▼';
+      const colorCls = nifty50.is_up ? 'var(--green)' : 'var(--red)';
+
+      const livePrice = document.getElementById('livePrice');
+      const liveChg = document.getElementById('liveChg');
+
+      if (livePrice) livePrice.textContent = priceFmt;
+      if (liveChg) {
+        liveChg.textContent = `${nifty50.chg}`;
+        liveChg.style.color = colorCls;
+      }
+
+      // Sync the random fluctuation base with the real live price for the lower card
+      basePrice = nifty50.price;
+      isMarketDataLoaded = true;
+    }
+
+  } catch (error) {
+    console.error("Error fetching live indices from backend:", error);
+  }
 }
 
-/* ---------- live price tick animation ---------- */
-let basePrice = 24523;
+/* ---------- simulated live price fluctuation (for visual effect) ---------- */
+/* ---------- simulated live price fluctuation (for visual effect) ---------- */
 function tickPrice(){
-  basePrice += (Math.random()-0.45)*4;
-  const formatted = basePrice.toLocaleString('en-IN', {maximumFractionDigits:0});
-  const heroPrice = document.getElementById('heroPrice');
+  if (!isMarketDataLoaded) return; 
+  
+  const tempPrice = basePrice + (Math.random() - 0.45) * 4;
+  const formatted = tempPrice.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+  
+  // ONLY update the lower livePrice box, DO NOT touch the heroPrice anymore
   const livePrice = document.getElementById('livePrice');
-  if(heroPrice) heroPrice.textContent = formatted;
   if(livePrice) livePrice.textContent = formatted;
 }
 
@@ -201,36 +229,72 @@ function handleSignupSubmit(e){
   alert('Account created for ' + fullname.value + ' (demo only — no backend connected).');
 }
 
-/* ---------- page init ---------- */
-document.addEventListener('DOMContentLoaded', function(){
+/* ---------- fetch and render live SENSEX chart ---------- */
+async function fetchSensexChart() {
+  const container = document.getElementById('heroChart');
+  if (!container) return; // Only run if the hero chart exists on the page
 
-  /* Landing page hero + live-demo charts */
-  if(document.getElementById('heroChart') && document.getElementById('liveChart')){
-    const heroCandles = genCandles(46, 24300, 7);
-    renderCandles('heroChart', heroCandles, {
-      width: 560, height: 230,
-      xLabels: ['15:00','15:30','16:00','16:30','17:00','17:30']
+  try {
+    const response = await fetch('http://localhost:8000/api/chart/^BSESN');
+    const data = await response.json();
+    
+    if (!data.candles || data.candles.length === 0) return;
+
+    // 1. Generate evenly spaced X-axis labels (e.g., 5 labels across the day)
+    const xLabels = [];
+    const labelCount = 5; 
+    const step = Math.max(1, Math.floor(data.candles.length / labelCount));
+    
+    data.candles.forEach((candle, index) => {
+       if (index % step === 0 && xLabels.length < labelCount) {
+         xLabels.push(candle.time);
+       }
     });
 
+    // 2. Render the real candles
+    renderCandles('heroChart', data.candles, {
+      width: 560, 
+      height: 230,
+      xLabels: xLabels
+    });
+
+    // 3. Update the Price and Change text
+    const priceFmt = data.price.toLocaleString('en-IN', {minimumFractionDigits: 2});
+    const arrow = data.is_up ? '▲' : '▼';
+    const colorCls = data.is_up ? 'var(--green)' : 'var(--red)';
+
+    const heroPrice = document.getElementById('heroPrice');
+    const heroChg = document.getElementById('heroChg');
+
+    if (heroPrice) heroPrice.textContent = priceFmt;
+    if (heroChg) {
+      heroChg.textContent = `${arrow} ${Math.abs(data.change).toFixed(2)}%`;
+      heroChg.style.color = colorCls;
+    }
+
+  } catch (error) {
+    console.error("Error loading Sensex chart:", error);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+
+  if(document.getElementById('liveChart')){
     const liveCandles = genCandles(60, 24200, 23);
     renderCandles('liveChart', liveCandles, {
       width: 640, height: 230,
       xLabels: ['09:30','10:00','10:30','11:00','11:30','12:00','12:30']
     });
   }
-  /* Login / signup hero chart only */
-  else if(document.getElementById('heroChart')){
-    const heroCandles = genCandles(46, 24300, 7);
-    renderCandles('heroChart', heroCandles, {
-      width: 560, height: 230,
-      xLabels: ['15:00','15:30','16:00','16:30','17:00','17:30']
-    });
-  }
 
-  buildTicker();
+  fetchSensexChart();
+  setInterval(fetchSensexChart, 15000);
+
+  fetchLiveMarketData();
+  setInterval(fetchLiveMarketData, 60000); 
+  
   setInterval(tickPrice, 2600);
 
-  /* Wire up forms if present on this page */
   const loginForm = document.getElementById('loginForm');
   if(loginForm) loginForm.addEventListener('submit', handleLoginSubmit);
 
