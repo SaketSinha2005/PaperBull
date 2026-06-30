@@ -3,207 +3,403 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PaperBull — Trade Smarter. Risk Nothing.</title>
-<link rel="stylesheet" href="style.css">
+<title>PaperBull Dashboard</title>
+<link rel="stylesheet" href="styles.css">
 </head>
-<body class="landing-page">
+<body>
 
-<div class="accent-bar"></div>
-
-<header class="nav nav-sticky">
-  <div class="wrap nav-inner">
-    <a class="brand" href="index.html"><span class="logo"></span> PaperBull</a>
-    <div class="nav-right">
-      <a class="login" href="login.html">Sign In</a>
-      <a class="btn btn-primary" href="signup.html">Sign Up</a>
+  <header class="navbar">
+    <div class="navbar-left">
+      <div class="logo-mark"></div>
+      <span class="logo-text">PaperBull</span>
+      <nav class="nav-links">
+        <a href="#" class="nav-link active">Dashboard</a>
+        <a href="#" class="nav-link">Stocks</a>
+        <a href="#" class="nav-link">Options</a>
+        <a href="#" class="nav-link">Watchlist</a>
+        <a href="#" class="nav-link">Orders</a>
+        <a href="#" class="nav-link">Holding</a>
+      </nav>
     </div>
-  </div>
-</header>
-
-<section class="hero">
-  <div class="wrap hero-grid hero-main">
-    <div class="hero-left">
-      <h1 class="hero-title">Trade Smarter.<br><span class="risk">Risk Nothing.</span></h1>
-      <p class="hero-sub">The most advanced stock market simulator for future traders.</p>
-      <div class="hero-ctas">
-
-    <a class="btn btn-primary" href="signup.html">
-        Start Trading Free
-    </a>
-
-    <a class="btn btn-outline" href="#">
-        ▶ Watch Demo
-    </a>
-
-</div>
-    </div>
-
-    <div class="chart-card hero-chart">
-      <div class="chart-card-head">
-        <div class="chart-title">
-          <span class="sym">SENSEX</span>
-          <span class="px" id="heroPrice">24,523</span>
-          <span class="chg" id="heroChg">▲ 1.2%</span>
-        </div>
-        <div class="live-pill"><span class="live-dot"></span> LIVE</div>
-      </div>
-      <div class="chart-svg-wrap" id="heroChart"></div>
-    </div>
-  </div>
-</section>
-
-<div class="ticker-strip">
-  <div class="wrap">
-    <div class="ticker-track" id="tickerTrack"></div>
-  </div>
-</div>
-
-<section class="stats">
-  <div class="wrap">
-    <div class="stats-label">Why PaperBull</div>
-    <div class="stats-grid stats-large">
-      <div class="stat-card">
-        <div class="stat-num">85%</div>
-        <div class="stat-desc">of new traders lose money<br>in their first year</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">₹50,000+</div>
-        <div class="stat-desc">minimum margin required<br>to open a real F&amp;O account</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">0</div>
-        <div class="stat-desc">simulators that teach you<br>real option Greeks</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="features">
-  <div class="wrap">
-    <h2 class="section-title">Everything a real trader needs</h2>
-    <div class="feat-grid feature-grid-large">
-      <div class="feat-card">
-        <div class="feat-title">Virtual ₹1,00,000</div>
-        <p class="feat-desc">Start with real buying power.<br> No deposit, no risk, no catch.</p>
-      </div>
-      <div class="feat-card">
-
-        <div class="feat-title">Live NSE/BSE Prices</div>
-        <p class="feat-desc">Real market prices from NSE — <br>intraday, daily, weekly shorts with full <br>technical indicators.</p>
-      </div>
-      <div class="feat-card">
-
-        <div class="feat-title">Intraday + F&amp;O Trading</div>
-        <p class="feat-desc">Intraday orders auto square-off<br> at 15:25 IST. Full option chain<br> with CE/PE data.</p>
-      </div>
-      <div class="feat-card">
-
-        <div class="feat-title">Neural Vol Surface</div>
-        <p class="feat-desc">A PyTorch model learns the true implied <br>volatility surface, computed via <br> adjoint — not Black-Scholes.</p>
-      </div>
-      <div class="feat-card">
-
-        <div class="feat-title">AI Stock Chatbot</div>
-        <p class="feat-desc">Ask anything about any stock.<br> The AI knows its live price, your position, and today's news.</p>
-      </div>
-      <div class="feat-card">
-        <div class="feat-title">Risk Management</div>
-        <p class="feat-desc">
-        Set stop-loss, target orders, and <br>position sizing to build disciplined<br> trading habits.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="live">
-    <div class="wrap">
-
-        <div class="live-box">
-
-            <div class="live-grid">
-    <div>
-      <h2 class="live-title">See it live</h2>
-      <p class="live-sub">A real NIFTY chart.<br> Real prices. <br> Updated every minute.</p>
-      <a class="btn btn-outline watch-demo" href="#">
-        Watch the Demo
-        <span>→</span>
-      </a>
-    </div>
-
-    <div class="live-card live-chart-card">
-      <div class="live-card-top">
-        <div class="live-card-title">
-          <span class="sym" style="font-weight:700;color:var(--ink-soft);font-size:14px;">NIFTY 50</span>
-          <span class="px" style="font-weight:800;font-size:18px;" id="livePrice">24,523</span>
-          <span class="chg" style="color:var(--green);font-weight:700;font-size:13px;" id="liveChg">+1.20%</span>
-        </div>
-        <div class="tf-buttons">
-          <span>1m</span><span class="active">5m</span><span>15h</span><span>1D</span><span>1W</span><span>⋯</span>
+    <div class="navbar-right">
+      <div class="money-box">
+        <div class="money-icon">₹</div>
+        <div class="money-info">
+          <span class="money-title">Available Money</span>
+          <span class="money-amount">₹1,00,000</span>
         </div>
       </div>
-      <div class="ohlc-row">
-        <span>O <b id="ohO">24,302.20</b></span>
-        <span>H <b id="ohH">24,580.85</b></span>
-        <span>L <b id="ohL">24,201.10</b></span>
-        <span>C <b id="ohC">24,523.65</b></span>
-        <span style="margin-left:auto;">30 May 2024 12:40</span>
-      </div>
-      <div class="live-card-chart">
-        <div id="liveChart"></div>
-      </div>
-      <div class="vol-row">
-        <div style="font-size:11.5px;color:var(--ink-soft);font-weight:600;">Volume 30.16K · 12,316</div>
-      </div>
-    </div></div></div>
+      <div class="avatar">S</div>
     </div>
-</section>
+  </header>
 
-<section class="steps">
-  <div class="wrap">
-    <h2 class="section-title">Up and running in 30 seconds</h2>
-    <div class="steps-row steps-big">
-      <div class="step">
-        <div class="step-line"></div>
-        <div class="step-num">1</div>
-        <div class="step-title">Sign up free</div>
-        <p class="step-desc">Create an account.<br>Get ₹1,00,000 virtual cash instantly. No card needed.</p>
-      </div>
-      <div class="step">
-        <div class="step-line"></div>
-        <div class="step-num">2</div>
-        <div class="step-title">Pick any NSE stock</div>
-        <p class="step-desc">Search RELIANCE, NIFTY, INFY — place intraday, F&amp;O, or delivery trades.</p>
-      </div>
-      <div class="step">
-        <div class="step-line"></div>
-        <div class="step-num">3</div>
-        <div class="step-title">Learn with AI</div>
-        <p class="step-desc">Track your P&amp;L, ask the chatbot, analyse today's trades. Get better every day.</p>
-      </div>
+  <div class="ticker-strip">
+    <div class="ticker-left">
+      <span class="ticker-item"><span class="ticker-name">NIFTY</span> <span class="ticker-val">24,056.00</span> <span class="up">+34.35 (0.14%)</span></span>
+      <span class="ticker-item"><span class="ticker-name">SENSEX</span> <span class="ticker-val">77,100.47</span> <span class="up">+109.25 (0.14%)</span></span>
+      <span class="ticker-item"><span class="ticker-name">BANKNIFTY</span> <span class="ticker-val">58,177.05</span> <span class="up">+26.70 (0.05%)</span></span>
+      <span class="ticker-item"><span class="ticker-name">MIDCNIFTY</span> <span class="ticker-val">14,434.55</span> <span class="down">-81.85 (0.56%)</span></span>
+      <span class="ticker-item"><span class="ticker-name">FINNIFTY</span> <span class="ticker-val">26,770.55</span> <span class="up">+34.15 (0.13%)</span></span>
     </div>
+    <div class="ticker-right">9/15</div>
   </div>
-</section>
 
-<section class="final-cta">
-  <div class="wrap">
-    <div class="cta-banner">
-      <h3>Start trading with ₹1,00,000 — no real money needed.</h3>
-      <a class="btn btn-primary" href="signup.html" style="padding:12px 26px;font-size:15px;">Create Free Account</a>
-      <div class="cta-fine">No credit card. No deposit. No risk.</div>
-    </div>
-  </div>
-</section>
+  <div class="page-wrap">
+    <main class="main-col">
 
-<footer>
-  <div class="wrap footer-inner">
-    <div class="footer-brand">PaperBull</div>
-    <div class="footer-links">
-      <a href="https://github.com/SaketSinha2005/PaperBull">GitHub</a>
-      <a href="https://hackwave.snioe.dev">Built for the PaperBull Hackathon</a>
-    </div>
+      <section class="card">
+        <div class="card-header">
+          <h2>Most bought stocks </h2>
+          <a href="#" class="link-arrow">See more <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+        <div class="bought-grid">
+          <div class="bought-item">
+            <div class="bought-logo logo-vedanta-iron">V</div>
+            <div class="bought-name">Vedanta Iron &amp; Steel</div>
+            <div class="bought-price">₹30.88</div>
+            <div class="bought-change up">+1.47 (5.00%)</div>
+          </div>
+          <div class="bought-item">
+            <div class="bought-logo logo-tatagold">T</div>
+            <div class="bought-name">TATAGOLD</div>
+            <div class="bought-price">₹13.50</div>
+            <div class="bought-change down">-0.32 (2.32%)</div>
+          </div>
+          <div class="bought-item">
+            <div class="bought-logo logo-vedanta">⊙</div>
+            <div class="bought-name">Vedanta</div>
+            <div class="bought-price">₹273.45</div>
+            <div class="bought-change down">-9.10 (3.22%)</div>
+          </div>
+          <div class="bought-item">
+            <div class="bought-logo logo-tatsilv">T</div>
+            <div class="bought-name">TATSILV</div>
+            <div class="bought-price">₹21.02</div>
+            <div class="bought-change down">-0.64 (2.95%)</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Top movers today</h2>
+        </div>
+        <div class="movers-bar">
+          <div class="pill-tabs">
+            <button class="pill active">Gainers</button>
+            <button class="pill">Losers</button>
+            <button class="pill">Volume shockers</button>
+          </div>
+          <button class="dropdown-btn">NIFTY 100 <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+
+        <table class="movers-table">
+          <thead>
+            <tr>
+              <th class="col-company">Company</th>
+              <th class="col-chart"></th>
+              <th class="col-price">Market price (10)</th>
+              <th class="col-volume">Volume</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-company">
+                <div class="row-co">
+                  <div class="co-logo logo-tata">T</div>
+                  <span>Tata Motors Commercial</span>
+                </div>
+              </td>
+              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,22 14,24 26,16 38,18 50,10 62,12 74,6 86,8 98,3" /></svg></td>
+              <td class="col-price"><div class="price">₹431.90</div><div class="change up">+20.50 (4.98%)</div></td>
+              <td class="col-volume">2,06,30,679</td>
+            </tr>
+            <tr>
+              <td class="col-company">
+                <div class="row-co">
+                  <div class="co-logo logo-samvardhana">S</div>
+                  <span>Samvardhana Mothers...</span>
+                </div>
+              </td>
+              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,24 14,18 26,20 38,14 50,16 62,9 74,12 86,5 98,7" /></svg></td>
+              <td class="col-price"><div class="price">₹151.71</div><div class="change up">+7.13 (4.93%)</div></td>
+              <td class="col-volume">7,45,19,440</td>
+            </tr>
+            <tr>
+              <td class="col-company">
+                <div class="row-co">
+                  <div class="co-logo logo-indigo">I</div>
+                  <span>Interglobe Aviation</span>
+                </div>
+              </td>
+              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,24 20,22 38,20 56,16 74,11 98,4" /></svg></td>
+              <td class="col-price"><div class="price">₹5,450.00</div><div class="change up">+242.80 (4.66%)</div></td>
+              <td class="col-volume">51,45,228</td>
+            </tr>
+            <tr>
+              <td class="col-company">
+                <div class="row-co">
+                  <div class="co-logo logo-max">M</div>
+                  <span>Max Healthcare Inst.</span>
+                </div>
+              </td>
+              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,23 20,20 38,18 56,14 74,10 98,5" /></svg></td>
+              <td class="col-price"><div class="price">₹1,123.35</div><div class="change up">+41.65 (3.85%)</div></td>
+              <td class="col-volume">51,56,097</td>
+            </tr>
+            <tr>
+              <td class="col-company">
+                <div class="row-co">
+                  <div class="co-logo logo-mahindra">M</div>
+                  <span>Mahindra &amp; Mahindra</span>
+                </div>
+              </td>
+              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,22 20,21 38,17 56,15 74,11 98,7" /></svg></td>
+              <td class="col-price"><div class="price">₹3,182.20</div><div class="change up">+117.70 (3.84%)</div></td>
+              <td class="col-volume">53,46,892</td>
+            </tr>
+            <tr>
+              <td class="col-company">
+                <div class="row-co">
+                  <div class="co-logo logo-tvs">T</div>
+                  <span>TVS Motor Co</span>
+                </div>
+              </td>
+              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,22 20,20 38,17 56,14 74,11 98,7" /></svg></td>
+              <td class="col-price"><div class="price">₹3,569.70</div><div class="change up">+128.10 (3.75%)</div></td>
+              <td class="col-volume">21,26,765</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Top intraday stocks</h2>
+          <a href="#" class="link-arrow">Intraday screener <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+        <div class="intraday-grid">
+          <div class="intraday-item">
+            <div class="intraday-logo logo-ramco-sys">R</div>
+            <div class="intraday-name">Ramco Systems</div>
+            <div class="intraday-price">₹709.80</div>
+            <div class="intraday-change up">36.00 (5.34%)</div>
+          </div>
+          <div class="intraday-item">
+            <div class="intraday-logo logo-relaxo">R</div>
+            <div class="intraday-name">Relaxo Footwears</div>
+            <div class="intraday-price">₹413.55</div>
+            <div class="intraday-change up">44.60 (12.09%)</div>
+          </div>
+          <div class="intraday-item">
+            <div class="intraday-logo logo-ramco-ind">R</div>
+            <div class="intraday-name">Ramco Industries</div>
+            <div class="intraday-price">₹342.75</div>
+            <div class="intraday-change up">38.60 (12.69%)</div>
+          </div>
+          <div class="intraday-item">
+            <div class="intraday-logo logo-pix">⚙</div>
+            <div class="intraday-name">Pix Transmission</div>
+            <div class="intraday-price">₹1,796.10</div>
+            <div class="intraday-change up">183.30 (11.37%)</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Sectors trending today</h2>
+          <a href="#" class="link-arrow">See all sectors <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+        <table class="sectors-table">
+          <thead>
+            <tr>
+              <th class="col-sector">Sector</th>
+              <th class="col-gl">Gainers/Losers</th>
+              <th class="col-change">1D price change</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-sector"><div class="sector-name"><span class="sector-icon">▦</span>Rubber Products</div></td>
+              <td class="col-gl">
+                <div class="gl-numbers"><span class="gl-up">5</span><span class="gl-down">5</span></div>
+                <div class="gl-bar"><div class="gl-bar-up" style="width:50%"></div><div class="gl-bar-down" style="width:50%"></div></div>
+              </td>
+              <td class="col-change up">+6.67%</td>
+            </tr>
+            <tr>
+              <td class="col-sector"><div class="sector-name"><span class="sector-icon">👟</span>Footwear</div></td>
+              <td class="col-gl">
+                <div class="gl-numbers"><span class="gl-up">10</span><span class="gl-down">4</span></div>
+                <div class="gl-bar"><div class="gl-bar-up" style="width:71%"></div><div class="gl-bar-down" style="width:29%"></div></div>
+              </td>
+              <td class="col-change up">+3.98%</td>
+            </tr>
+            <tr>
+              <td class="col-sector"><div class="sector-name"><span class="sector-icon">✈</span>Aviation</div></td>
+              <td class="col-gl">
+                <div class="gl-numbers"><span class="gl-up">5</span><span class="gl-down">2</span></div>
+                <div class="gl-bar"><div class="gl-bar-up" style="width:71%"></div><div class="gl-bar-down" style="width:29%"></div></div>
+              </td>
+              <td class="col-change up">+3.05%</td>
+            </tr>
+            <tr>
+              <td class="col-sector"><div class="sector-name"><span class="sector-icon">🚚</span>Logistics</div></td>
+              <td class="col-gl">
+                <div class="gl-numbers"><span class="gl-up">26</span><span class="gl-down">59</span></div>
+                <div class="gl-bar"><div class="gl-bar-up" style="width:31%"></div><div class="gl-bar-down" style="width:69%"></div></div>
+              </td>
+              <td class="col-change down">-1.73%</td>
+            </tr>
+            <tr>
+              <td class="col-sector"><div class="sector-name"><span class="sector-icon">🛒</span>Auto Retail</div></td>
+              <td class="col-gl">
+                <div class="gl-numbers"><span class="gl-up">3</span><span class="gl-down">4</span></div>
+                <div class="gl-bar"><div class="gl-bar-up" style="width:43%"></div><div class="gl-bar-down" style="width:57%"></div></div>
+              </td>
+              <td class="col-change down">-1.78%</td>
+            </tr>
+            <tr>
+              <td class="col-sector"><div class="sector-name"><span class="sector-icon">♻</span>Waste Management</div></td>
+              <td class="col-gl">
+                <div class="gl-numbers"><span class="gl-up">4</span><span class="gl-down">12</span></div>
+                <div class="gl-bar"><div class="gl-bar-up" style="width:25%"></div><div class="gl-bar-down" style="width:75%"></div></div>
+              </td>
+              <td class="col-change down">-3.25%</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+    </main>
+
+    <aside class="side-col">
+
+      <section class="card side-card">
+        <h2 class="side-title">Your investments</h2>
+        <div class="invest-illustration">
+          <svg viewBox="0 0 280 140" width="100%" height="90">
+            <rect x="0" y="0" width="280" height="140" fill="#0d2b24"/>
+            <line x1="20" y1="20" x2="20" y2="32" stroke="#1f6e5c" stroke-width="3" stroke-linecap="round"/>
+            <line x1="28" y1="14" x2="28" y2="32" stroke="#1f6e5c" stroke-width="3" stroke-linecap="round"/>
+            <line x1="36" y1="22" x2="36" y2="32" stroke="#1f6e5c" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="240" cy="26" r="11" fill="none" stroke="#1f6e5c" stroke-width="4"/>
+            <path d="M70 100 L130 60 L170 75 L230 35" stroke="#2bb893" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M222 35 L232 33 L230 43" stroke="#2bb893" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <g>
+              <rect x="58" y="112" width="22" height="16" rx="2" fill="#1f6e5c"/>
+              <line x1="69" y1="112" x2="69" y2="92" stroke="#2bb893" stroke-width="3"/>
+              <circle cx="69" cy="86" r="10" fill="#2bb893"/>
+              <text x="69" y="90" font-size="10" fill="#0d2b24" text-anchor="middle" font-weight="700">$</text>
+            </g>
+            <g>
+              <rect x="108" y="118" width="22" height="16" rx="2" fill="#1f6e5c"/>
+              <line x1="119" y1="118" x2="119" y2="100" stroke="#2bb893" stroke-width="3"/>
+              <circle cx="119" cy="94" r="9" fill="#2bb893"/>
+              <text x="119" y="98" font-size="9" fill="#0d2b24" text-anchor="middle" font-weight="700">$</text>
+            </g>
+            <g>
+              <rect x="150" y="108" width="22" height="16" rx="2" fill="#1f6e5c"/>
+              <line x1="161" y1="108" x2="161" y2="78" stroke="#2bb893" stroke-width="3"/>
+              <circle cx="161" cy="71" r="12" fill="#2bb893"/>
+              <text x="161" y="76" font-size="11" fill="#0d2b24" text-anchor="middle" font-weight="700">$</text>
+            </g>
+            <g>
+              <circle cx="42" cy="80" r="7" fill="#2bb893"/>
+              <rect x="35" y="88" width="14" height="24" rx="4" fill="#1f6e5c"/>
+              <path d="M49 95 L62 90 L64 100 L52 102 Z" fill="#1f6e5c"/>
+            </g>
+            <g>
+              <circle cx="200" cy="85" r="7" fill="#2bb893"/>
+              <rect x="193" y="93" width="14" height="26" rx="4" fill="#1f6e5c"/>
+            </g>
+          </svg>
+        </div>
+        <p class="invest-empty">You haven't invested yet</p>
+        <button class="btn-outline">EXPLORE STOCKS</button>
+      </section>
+
+      <section class="card side-card">
+        <h2 class="side-title">Products &amp; Tools</h2>
+        <ul class="tools-list">
+          <li class="tools-item">
+            <span class="tools-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="tools-label">IPO</span>
+            <span class="badge badge-green">6 open</span>
+          </li>
+          <li class="tools-item">
+            <span class="tools-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 19V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 19v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+            <span class="tools-label">F&amp;O</span>
+            <span class="badge badge-green2">Active</span>
+          </li>
+          <li class="tools-item">
+            <span class="tools-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 14-5.3L20 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 5v4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19v-4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="tools-label">Mutual Funds</span>
+            <span class="badge badge-navy">Explore</span>
+          </li>
+          <li class="tools-item">
+            <span class="tools-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 4h18l-7 9v6l-4 2v-8L3 4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="tools-label">Stock Screener</span>
+            <span class="badge badge-amber">New</span>
+          </li>
+        </ul>
+        <a href="#" class="view-all-link">View all tools <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </section>
+
+      <section class="card side-card news-card">
+        <div class="card-header">
+          <h2 class="side-title">Market news</h2>
+          <a href="#" class="link-arrow">View all news <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+        <ul class="news-list">
+          <li class="news-item">
+            <div class="news-text">
+              <p class="news-headline">Sensex rises over 100 points in early trade; Nifty above 24,000</p>
+              <p class="news-meta">Economic Times &middot; 2m ago</p>
+            </div>
+            <div class="news-thumb thumb-1"></div>
+          </li>
+          <li class="news-item">
+            <div class="news-text">
+              <p class="news-headline">RBI keeps repo rate unchanged at 6.50%; maintains 'neutral' stance</p>
+              <p class="news-meta">Live Mint &middot; 30m ago</p>
+            </div>
+            <div class="news-thumb thumb-2"></div>
+          </li>
+          <li class="news-item">
+            <div class="news-text">
+              <p class="news-headline">IT stocks rally as US markets gain ahead of Fed decision</p>
+              <p class="news-meta">Moneycontrol &middot; 45m ago</p>
+            </div>
+            <div class="news-thumb thumb-3"></div>
+          </li>
+          <li class="news-item">
+            <div class="news-text">
+              <p class="news-headline">Oil prices fall on rising inventories, weak demand outlook</p>
+              <p class="news-meta">Business Standard &middot; 1h ago</p>
+            </div>
+            <div class="news-thumb thumb-4"></div>
+          </li>
+          <li class="news-item">
+            <div class="news-text">
+              <p class="news-headline">Government may announce big reforms in logistics sector</p>
+              <p class="news-meta">Financial Express &middot; 1h ago</p>
+            </div>
+            <div class="news-thumb thumb-5"></div>
+          </li>
+          <li class="news-item">
+            <div class="news-text">
+              <p class="news-headline">FPIs net buyers for 5th straight session; pump in ₹4,200 cr</p>
+              <p class="news-meta">NDTV Profit &middot; 2h ago</p>
+            </div>
+            <div class="news-thumb thumb-6"></div>
+          </li>
+        </ul>
+      </section>
+
+    </aside>
   </div>
-</footer>
 
 <script src="script.js"></script>
 </body>
