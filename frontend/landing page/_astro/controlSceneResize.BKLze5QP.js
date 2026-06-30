@@ -1,0 +1,1 @@
+import{requestScrollRefresh as o}from"./scrollRefreshCoordinator.CPpWOH3A.js";import{c as s,R as t}from"./viewportRefreshScheduler.BpkvhvfG.js";const f=r=>{const e=s({delay:t,frame:!1,onRefresh:()=>{o({beforeRefresh:r,delayMs:80,source:"control-scene:pinned-layout"})}});return{destroy:e.destroy,schedule:e.schedule}};export{f as setupControlPinnedLayoutResizeRefresh};
