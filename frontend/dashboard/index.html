@@ -8,40 +8,39 @@
 </head>
 <body>
 
-  <header class="navbar">
-    <div class="navbar-left">
-      <div class="logo-mark"></div>
-      <span class="logo-text">PaperBull</span>
-      <nav class="nav-links">
-        <a href="#" class="nav-link active">Dashboard</a>
-        <a href="#" class="nav-link">Stocks</a>
-        <a href="#" class="nav-link">Options</a>
-        <a href="#" class="nav-link">Watchlist</a>
-        <a href="#" class="nav-link">Orders</a>
-        <a href="#" class="nav-link">Holding</a>
-      </nav>
-    </div>
-    <div class="navbar-right">
-      <div class="money-box">
-        <div class="money-icon">₹</div>
-        <div class="money-info">
-          <span class="money-title">Available Money</span>
-          <span class="money-amount">₹1,00,000</span>
-        </div>
+  <div class="sticky-header-wrapper">
+    <header class="navbar">
+      <div class="navbar-left">
+        <div class="logo-mark"></div>
+        <span class="logo-text">PaperBull</span>
+        <nav class="nav-links">
+          <a href="#" class="nav-link active">Dashboard</a>
+          <a href="#" class="nav-link">Stocks</a>
+          <a href="#" class="nav-link">Options</a>
+          <a href="#" class="nav-link">Watchlist</a>
+          <a href="#" class="nav-link">Orders</a>
+          <a href="#" class="nav-link">Holding</a>
+        </nav>
       </div>
-      <div class="avatar">S</div>
-    </div>
-  </header>
+      <div class="navbar-right">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="text" placeholder="Search stocks, options...">
+        </div>
+        <div class="avatar">S</div>
+      </div>
+    </header>
 
-  <div class="ticker-strip">
-    <div class="ticker-left">
-      <span class="ticker-item"><span class="ticker-name">NIFTY</span> <span class="ticker-val">24,056.00</span> <span class="up">+34.35 (0.14%)</span></span>
-      <span class="ticker-item"><span class="ticker-name">SENSEX</span> <span class="ticker-val">77,100.47</span> <span class="up">+109.25 (0.14%)</span></span>
-      <span class="ticker-item"><span class="ticker-name">BANKNIFTY</span> <span class="ticker-val">58,177.05</span> <span class="up">+26.70 (0.05%)</span></span>
-      <span class="ticker-item"><span class="ticker-name">MIDCNIFTY</span> <span class="ticker-val">14,434.55</span> <span class="down">-81.85 (0.56%)</span></span>
-      <span class="ticker-item"><span class="ticker-name">FINNIFTY</span> <span class="ticker-val">26,770.55</span> <span class="up">+34.15 (0.13%)</span></span>
+    <div class="ticker-strip">
+      <div class="ticker-left">
+        <span class="ticker-item"><span class="ticker-name">NIFTY</span> <span class="ticker-val">24,056.00</span> <span class="up">+34.35 (0.14%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">SENSEX</span> <span class="ticker-val">77,100.47</span> <span class="up">+109.25 (0.14%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">BANKNIFTY</span> <span class="ticker-val">58,177.05</span> <span class="up">+26.70 (0.05%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">MIDCNIFTY</span> <span class="ticker-val">14,434.55</span> <span class="down">-81.85 (0.56%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">FINNIFTY</span> <span class="ticker-val">26,770.55</span> <span class="up">+34.15 (0.13%)</span></span>
+      </div>
+      <div class="ticker-right">9/15</div>
     </div>
-    <div class="ticker-right">9/15</div>
   </div>
 
   <div class="page-wrap">
@@ -88,89 +87,31 @@
           <div class="pill-tabs">
             <button class="pill active">Gainers</button>
             <button class="pill">Losers</button>
-            <button class="pill">Volume shockers</button>
-          </div>
-          <button class="dropdown-btn">NIFTY 100 <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </div>
+          
         </div>
 
         <table class="movers-table">
           <thead>
             <tr>
               <th class="col-company">Company</th>
-              <th class="col-chart"></th>
-              <th class="col-price">Market price (10)</th>
+              <th class="col-graph"></th> <th class="col-price">Market price (1D)</th>
               <th class="col-volume">Volume</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="movers-table-body">
             <tr>
-              <td class="col-company">
-                <div class="row-co">
-                  <div class="co-logo logo-tata">T</div>
-                  <span>Tata Motors Commercial</span>
-                </div>
+              <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                Loading live market data...
               </td>
-              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,22 14,24 26,16 38,18 50,10 62,12 74,6 86,8 98,3" /></svg></td>
-              <td class="col-price"><div class="price">₹431.90</div><div class="change up">+20.50 (4.98%)</div></td>
-              <td class="col-volume">2,06,30,679</td>
-            </tr>
-            <tr>
-              <td class="col-company">
-                <div class="row-co">
-                  <div class="co-logo logo-samvardhana">S</div>
-                  <span>Samvardhana Mothers...</span>
-                </div>
-              </td>
-              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,24 14,18 26,20 38,14 50,16 62,9 74,12 86,5 98,7" /></svg></td>
-              <td class="col-price"><div class="price">₹151.71</div><div class="change up">+7.13 (4.93%)</div></td>
-              <td class="col-volume">7,45,19,440</td>
-            </tr>
-            <tr>
-              <td class="col-company">
-                <div class="row-co">
-                  <div class="co-logo logo-indigo">I</div>
-                  <span>Interglobe Aviation</span>
-                </div>
-              </td>
-              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,24 20,22 38,20 56,16 74,11 98,4" /></svg></td>
-              <td class="col-price"><div class="price">₹5,450.00</div><div class="change up">+242.80 (4.66%)</div></td>
-              <td class="col-volume">51,45,228</td>
-            </tr>
-            <tr>
-              <td class="col-company">
-                <div class="row-co">
-                  <div class="co-logo logo-max">M</div>
-                  <span>Max Healthcare Inst.</span>
-                </div>
-              </td>
-              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,23 20,20 38,18 56,14 74,10 98,5" /></svg></td>
-              <td class="col-price"><div class="price">₹1,123.35</div><div class="change up">+41.65 (3.85%)</div></td>
-              <td class="col-volume">51,56,097</td>
-            </tr>
-            <tr>
-              <td class="col-company">
-                <div class="row-co">
-                  <div class="co-logo logo-mahindra">M</div>
-                  <span>Mahindra &amp; Mahindra</span>
-                </div>
-              </td>
-              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,22 20,21 38,17 56,15 74,11 98,7" /></svg></td>
-              <td class="col-price"><div class="price">₹3,182.20</div><div class="change up">+117.70 (3.84%)</div></td>
-              <td class="col-volume">53,46,892</td>
-            </tr>
-            <tr>
-              <td class="col-company">
-                <div class="row-co">
-                  <div class="co-logo logo-tvs">T</div>
-                  <span>TVS Motor Co</span>
-                </div>
-              </td>
-              <td class="col-chart"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,22 20,20 38,17 56,14 74,11 98,7" /></svg></td>
-              <td class="col-price"><div class="price">₹3,569.70</div><div class="change up">+128.10 (3.75%)</div></td>
-              <td class="col-volume">21,26,765</td>
             </tr>
           </tbody>
         </table>
+
+        <div style="padding-top: 16px; margin-top: 8px;">
+          <a href="#" class="link-arrow" style="color: #63B1BF;">See more <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+
       </section>
 
       <section class="card">

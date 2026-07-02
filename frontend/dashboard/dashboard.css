@@ -1,9 +1,34 @@
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* For Firefox and older Internet Explorer/Edge versions */
+html, body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('../fonts/gilroy/gilroy-300.woff2') format('woff2');
+  font-weight: 500; 
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: url('../fonts/gilroy/gilroy-900.woff2') format('woff2');
+  font-weight: 600; 
+  font-style: normal;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg-page: #0d1117;
-  --bg-card: #181b24;
-  --bg-card-alt: #1c1f28;
+  --bg-page: #07090d;
+  --bg-card: #0F121A;
+  --bg-card-alt: #121622;
   --bg-pill: #20212a;
   --bg-pill-active: #2a2b36;
   --border-color: #262732;
@@ -11,15 +36,19 @@
   --text-primary: #f2f2f4;
   --text-secondary: #9a9ba6;
   --text-muted: #6f707b;
-  --green: #1fb574;
-  --green-bg: rgba(31, 181, 116, 0.12);
-  --red: #f2545b;
-  --red-bg: rgba(242, 84, 91, 0.12);
+  --green: #62B1BF;
+  --green-bg: rgba(98, 177, 191, 0.12);
+  --red: #325AA6;
+  --red-bg: rgba(50, 90, 166, 0.12);
   --blue: #5b8def;
   --purple: #7c6cf6;
   --yellow: #f5c451;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  font-family: "Gilroy", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
+
+.up { color: var(--green); }
+.down { color: var(--red); }
 
 body {
   background: var(--bg-page);
@@ -49,16 +78,19 @@ table { width: 100%; border-collapse: collapse; }
 }
 
 .logo-mark {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 7px;
-  background: linear-gradient(135deg,  #8b7cf6,  #6c5ce7);
+  background-image: url('brand/logo.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
   display: inline-block;
-  margin-right: 8px;
+  margin-right: -20px;
 }
 
 .logo-text {
-  font-size: 17px;
+  font-size: 21px;
   font-weight: 700;
   margin-right: 12px;
   vertical-align: middle;
@@ -72,10 +104,34 @@ table { width: 100%; border-collapse: collapse; }
 }
 
 .nav-link {
-  font-size: 14.5px;
+  font-size: 16px;
   color: var(--text-secondary);
   font-weight: 500;
   padding: 6px 0;
+  position: relative; 
+  transition: color 0.2s ease-in-out;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; 
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #ffffff;
+  transform: scaleX(0); 
+  transform-origin: bottom right;
+  transition: transform 0.25s ease-out; 
+}
+
+.nav-link:hover {
+  color: var(--text-primary); 
+}
+
+.nav-link:hover::after {
+  transform: scaleX(1); 
+  transform-origin: bottom left;
 }
 
 .nav-link.active {
@@ -88,45 +144,42 @@ table { width: 100%; border-collapse: collapse; }
   align-items: center;
   gap: 18px;
 }
-.money-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 18px;
-  background: #161b23;
-  border: 1px solid #1fb574;
-  border-radius: 12px;
-  min-width: 200px;
-}
 
-.money-icon {
-  width: 38px;
-  height: 36px;
+.search-box {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
-  background: rgba(31, 181, 116, 0.12);
-  color: #1fb574;
-  font-size: 20px;
-  font-weight: 700;
+  padding: 8px 14px;
+  width: 260px;
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.money-info {
-  display: flex;
-  flex-direction: column;
+.search-box:focus-within {
+  border-color: #63B1BF;
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.money-title {
-  font-size: 10px;
+.search-box svg {
+  width: 16px;
+  height: 16px;
   color: #9a9ba6;
 }
 
-.money-amount {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1fb574;
-  line-height: 1.1;
+.search-box input {
+  border: none;
+  background: transparent;
+  color: #f2f2f4;
+  font-size: 14.5px;
+  width: 100%;
+  outline: none;
+  font-family: inherit;
+}
+
+.search-box input::placeholder {
+  color: #6f707b;
 }
 
 .avatar {
@@ -329,8 +382,8 @@ table { width: 100%; border-collapse: collapse; }
 
 .movers-table thead th {
   text-align: left;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-muted);
   padding: 0 0 14px 0;
   border-bottom: 1px solid var(--border-soft);
@@ -690,4 +743,90 @@ table { width: 100%; border-collapse: collapse; }
   .ticker-left { flex-wrap: wrap; gap: 14px; }
   .bought-grid, .intraday-grid { grid-template-columns: 1fr; }
   .col-chart { display: none; }
+}
+
+.sticky-header-wrapper {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  background: rgba(7, 9, 13, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(35, 37, 48, 0.5);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  will-change: transform, opacity;
+}
+
+.sticky-header-wrapper.hidden {
+  opacity: 0;
+  transform: translateY(-20px);
+  pointer-events: none;
+}
+
+.movers-table tbody td {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 16px 12px; 
+}
+
+.movers-table .up, 
+.movers-table .down {
+  font-size: 14px;
+  font-weight: 600; 
+}
+
+.movers-table {
+  width: 100%;
+  table-layout: fixed; }
+
+.movers-table .col-company { width: 30%; text-align: left; }
+.movers-table .col-graph { width: 25%; text-align: center; }
+.movers-table .col-price { width: 25%; text-align: right; padding-right: 20px; }
+.movers-table .col-volume { width: 20%; text-align: right; }
+
+.movers-table .price {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.movers-table .change {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.spark { 
+  width: 90px; 
+  height: 24px; 
+  display: block; 
+}
+.spark polyline { 
+  fill: none; 
+  stroke-width: 1.8; 
+  stroke-linecap: round; 
+  stroke-linejoin: round; 
+}
+.spark-up polyline { stroke: var(--green); }
+.spark-down polyline { stroke: var(--red); }
+
+.movers-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+.movers-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.bought-item, 
+.intraday-item {
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+
+.bought-item:hover, 
+.intraday-item:hover {
+  border-color: #3b5fcf; 
+  background-color: var(--bg-card);
+  transform: translateY(-2px); 
 }
