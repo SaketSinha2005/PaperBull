@@ -1,128 +1,126 @@
-// routes/auth.js — /api/signup and /api/login
-// Mirrors the Python FastAPI auth endpoints, ported to Express + pg.
-
 const express = require("express");
-const bcrypt  = require("bcrypt");
-const pool    = require("../db");
-
+const bcrypt = require("bcrypt");
 const router = express.Router();
-const SALT_ROUNDS = 10;
+const pool = require("../db");
 
-// ─── POST /api/signup ─────────────────────────────────────────────────────────
-// Body: { display_name, email, password }
+// POST /api/signup
 router.post("/signup", async (req, res) => {
-  const { display_name, email, password } = req.body;
-
-  if (!display_name || !email || !password) {
-    return res.status(400).json({ error: "display_name, email, and password are required." });
-  }
-
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
+    const { email, password, display_name } = req.body;
+
+    if (!email || !password || !display_name) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required.",
+      });
+    }
 
     // Check if email already exists
-    const existing = await client.query(
-      "SELECT id FROM user_auth WHERE email = $1",
-      [email]
+    const existing = await pool.query(
+      "SELECT id FROM user_auth WHERE email=$1",
+      [email],
     );
+
     if (existing.rows.length > 0) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ error: "Email already registered." });
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered.",
+      });
     }
 
-    // Hash password
-    const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+    const passwordHash = await bcrypt.hash(password, 10);
 
-    // Insert into user_auth — RETURNING id replaces lastInsertId / lastrowid
-    const authResult = await client.query(
-      "INSERT INTO user_auth (email, password_hash) VALUES ($1, $2) RETURNING id",
-      [email, password_hash]
-    );
-    const auth_id = authResult.rows[0].id;
-
-    // Insert into users (profile)
-    await client.query(
-      "INSERT INTO users (auth_id, display_name) VALUES ($1, $2)",
-      [auth_id, display_name]
+    // Insert into user_auth
+    const authResult = await pool.query(
+      `INSERT INTO user_auth(email,password_hash)
+       VALUES($1,$2)
+       RETURNING id`,
+      [email, passwordHash],
     );
 
-    await client.query("COMMIT");
+    const authId = authResult.rows[0].id;
 
-    return res.status(201).json({
-      success: true,
-      message: "Account created successfully.",
-      user: { email, display_name },
-    });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("Signup error:", err.message);
-    return res.status(500).json({ error: "Internal server error." });
-  } finally {
-    client.release();
-  }
-});
-
-// ─── POST /api/login ──────────────────────────────────────────────────────────
-// Body: { email, password }
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: "email and password are required." });
-  }
-
-  const client = await pool.connect();
-  try {
-    // Fetch auth record
-    const authResult = await client.query(
-      "SELECT id, password_hash FROM user_auth WHERE email = $1",
-      [email]
+    // Insert into users
+    const userResult = await pool.query(
+      `INSERT INTO users(auth_id,display_name)
+       VALUES($1,$2)
+       RETURNING *`,
+      [authId, display_name],
     );
-    if (authResult.rows.length === 0) {
-      return res.status(401).json({ error: "Invalid email or password." });
-    }
-
-    const authRow = authResult.rows[0];
-
-    // Verify password
-    const valid = await bcrypt.compare(password, authRow.password_hash);
-    if (!valid) {
-      return res.status(401).json({ error: "Invalid email or password." });
-    }
-
-    // Update last_login — PostgreSQL uses NOW() just like MySQL
-    await client.query(
-      "UPDATE user_auth SET last_login = NOW() WHERE id = $1",
-      [authRow.id]
-    );
-
-    // Fetch user profile
-    const userResult = await client.query(
-      `SELECT display_name, virtual_balance, portfolio_value,
-              realized_pnl, total_trades
-       FROM users WHERE auth_id = $1`,
-      [authRow.id]
-    );
-    const userRow = userResult.rows[0];
 
     return res.json({
       success: true,
-      message: "Login successful.",
       user: {
+        id: userResult.rows[0].id,
+        fullName: userResult.rows[0].display_name,
         email,
-        display_name:    userRow.display_name,
-        virtual_balance: parseFloat(userRow.virtual_balance),
-        portfolio_value: parseFloat(userRow.portfolio_value),
-        realized_pnl:    parseFloat(userRow.realized_pnl),
-        total_trades:    userRow.total_trades,
+        balance: Number(userResult.rows[0].virtual_balance),
       },
     });
   } catch (err) {
-    console.error("Login error:", err.message);
-    return res.status(500).json({ error: "Internal server error." });
-  } finally {
-    client.release();
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+// POST /api/login
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const result = await pool.query(
+      `SELECT
+          ua.id,
+          ua.email,
+          ua.password_hash,
+          u.display_name,
+          u.virtual_balance
+       FROM user_auth ua
+       JOIN users u
+       ON ua.id=u.auth_id
+       WHERE ua.email=$1`,
+      [email],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    const user = result.rows[0];
+
+    const ok = await bcrypt.compare(password, user.password_hash);
+
+    if (!ok) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    await pool.query("UPDATE user_auth SET last_login=NOW() WHERE id=$1", [
+      user.id,
+    ]);
+
+    res.json({
+      success: true,
+      user: {
+        fullName: user.display_name,
+        email: user.email,
+        balance: Number(user.virtual_balance),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 });
 

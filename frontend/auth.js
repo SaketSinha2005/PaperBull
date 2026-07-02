@@ -2,6 +2,10 @@
   var modal = document.getElementById('authModal');
   if (!modal) return;
 
+  // Backend API base URL — the paperbull-node Express server (default port 8000).
+  // Change this if you run the backend on a different host/port.
+  var API_BASE = 'http://localhost:8000';
+
   var flip = modal.querySelector('[data-auth-flip]');
 
   function clearErrors() {
@@ -80,12 +84,80 @@
     });
   });
 
+  function setSubmitting(form, isSubmitting) {
+    var btn = form.querySelector('.auth-modal__submit');
+    if (!btn) return;
+    if (isSubmitting) {
+      btn.dataset.originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Please wait…';
+    } else {
+      btn.disabled = false;
+      if (btn.dataset.originalLabel) btn.textContent = btn.dataset.originalLabel;
+    }
+  }
+
+  function saveSessionUser(user) {
+    // Shape expected by frontend/dashboard/dashboard.js
+    localStorage.setItem('paperbull_user', JSON.stringify({
+      fullName: user.display_name || '',
+      email: user.email || '',
+      balance: typeof user.virtual_balance === 'number' ? user.virtual_balance : 100000
+    }));
+  }
+
   var signupForm = modal.querySelector('[data-signup-form]');
   var signupError = modal.querySelector('[data-signup-error]');
   if (signupForm) {
     signupForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      window.location.href = '/dashboard/index.html';
+      if (signupError) signupError.textContent = '';
+
+      var firstName = (document.getElementById('signupFullName') || {}).value || '';
+      var lastName = (document.getElementById('signupUsername') || {}).value || '';
+      var email = (document.getElementById('signupEmail') || {}).value || '';
+      var password = (document.getElementById('signupPassword') || {}).value || '';
+      var confirm = (document.getElementById('signupConfirm') || {}).value || '';
+      var displayName = (firstName + ' ' + lastName).trim();
+
+      if (password !== confirm) {
+        if (signupError) signupError.textContent = 'Passwords do not match.';
+        return;
+      }
+
+      setSubmitting(signupForm, true);
+
+      fetch(API_BASE + '/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          display_name: displayName,
+          email: email,
+          password: password
+        })
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            return { ok: res.ok, data: data };
+          });
+        })
+        .then(function (result) {
+          setSubmitting(signupForm, false);
+          if (!result.ok) {
+            if (signupError) signupError.textContent = result.data.error || 'Signup failed.';
+            return;
+          }
+          saveSessionUser({
+            display_name: displayName,
+            email: email,
+            virtual_balance: 100000
+          });
+          window.location.href = '/dashboard/index.html';
+        })
+        .catch(function () {
+          setSubmitting(signupForm, false);
+          if (signupError) signupError.textContent = 'Could not reach the server. Is the backend running?';
+        });
     });
   }
 
@@ -94,7 +166,36 @@
   if (loginForm) {
     loginForm.addEventListener('submit', function (e) {
       e.preventDefault();
-      window.location.href = '/dashboard/index.html';
+      if (loginError) loginError.textContent = '';
+
+      var email = (document.getElementById('loginEmail') || {}).value || '';
+      var password = (document.getElementById('loginPassword') || {}).value || '';
+
+      setSubmitting(loginForm, true);
+
+      fetch(API_BASE + '/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password })
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            return { ok: res.ok, data: data };
+          });
+        })
+        .then(function (result) {
+          setSubmitting(loginForm, false);
+          if (!result.ok) {
+            if (loginError) loginError.textContent = result.data.error || 'Login failed.';
+            return;
+          }
+          saveSessionUser(result.data.user);
+          window.location.href = '/dashboard/index.html';
+        })
+        .catch(function () {
+          setSubmitting(loginForm, false);
+          if (loginError) loginError.textContent = 'Could not reach the server. Is the backend running?';
+        });
     });
   }
 
