@@ -3,4 +3,12 @@ venv
 venv/
 
 # Backend
+<<<<<<< Updated upstream
 backend/.env
+=======
+paperbull-node/.env/
+
+# Ignore node_modules directories everywhere
+node_modules/
+**/node_modules/
+>>>>>>> Stashed changes
