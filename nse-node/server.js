@@ -28,7 +28,31 @@ async function fetchMovers(indexType) {
     const url = `https://www.nseindia.com/api/live-analysis-variations?index=${indexType}`;
     const response = await axios.get(url, { headers: reqHeaders });
     
-    const dataList = response.data.NIFTY.data.slice(0, 7); 
+    const categoryOrder = [
+        'NIFTY',
+        'BANKNIFTY',
+        'NIFTYNEXT50',
+        'SecGtr20',
+        'SecLwr20',
+        'FOSec',
+        'allSec'
+    ];
+
+    let moversData = [];
+    for (const category of categoryOrder) {
+        const categoryData = response.data[category];
+        if (categoryData && Array.isArray(categoryData.data) && categoryData.data.length > 0) {
+            moversData = categoryData.data;
+            console.log(`Using ${category} category for ${indexType}`);
+            break;
+        }
+    }
+
+    if (!moversData.length && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        moversData = response.data.data;
+    }
+
+    const dataList = moversData.slice(0, 7);
     const mappedStocks = [];
     
     for (const stock of dataList) {
