@@ -27,8 +27,8 @@ html, body {
 
 :root {
   --bg-page: #07090d;
-  --bg-card: #0F121A;
-  --bg-card-alt: #121622;
+  --bg-card: #07090d;
+  --bg-card-alt: #07090d;
   --bg-pill: #20212a;
   --bg-pill-active: #2a2b36;
   --border-color: #262732;
