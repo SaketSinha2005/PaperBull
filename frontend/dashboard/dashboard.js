@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ---- Watchlist (shared with the stock detail page via localStorage) ----
 const WATCHLIST_KEY = 'paperbull_watchlist';
 
 function getStoredWatchlist() {
@@ -115,7 +114,6 @@ function renderUserWatchlist() {
   }
 }
 
-// ---- Profile dropdown: stocks bought / money available / profit-loss / logout ----
 function getPortfolioSummary() {
   let portfolio = {};
   let user = {};

@@ -1179,22 +1179,7 @@ function PlaceholderPage({ title, navActive, onNavChange }) {
 }
 
 function useStickyHeaderOnScroll() {
-  useEffect(() => {
-    const header = document.querySelector(".sticky-header-wrapper");
-    if (!header) return;
-    let isScrolling;
 
-    const onScroll = () => {
-      header.classList.add("hidden");
-      window.clearTimeout(isScrolling);
-      isScrolling = setTimeout(() => {
-        header.classList.remove("hidden");
-      }, 250);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  });
 }
 
 function App() {
