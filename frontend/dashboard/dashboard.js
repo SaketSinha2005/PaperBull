@@ -28,12 +28,180 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const navLinks = document.querySelectorAll('.nav-link');
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
   navLinks.forEach((link) => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
+    const href = link.getAttribute('href');
+
+    if (href === currentPage) {
       navLinks.forEach((l) => l.classList.remove('active'));
       link.classList.add('active');
+    }
+
+    link.addEventListener('click', (e) => {
+      if (href === '#') {
+        e.preventDefault();
+      }
+      navLinks.forEach((l) => l.classList.remove('active'));
+      link.classList.add('active');
+    });
+  });
+});
+
+// ---- Watchlist (shared with the stock detail page via localStorage) ----
+const WATCHLIST_KEY = 'paperbull_watchlist';
+
+function getStoredWatchlist() {
+  try {
+    const raw = localStorage.getItem(WATCHLIST_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveStoredWatchlist(list) {
+  try {
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
+  } catch (err) {}
+}
+
+function renderUserWatchlist() {
+  const body = document.getElementById('watchlistBody');
+  if (!body) return;
+
+  document.querySelectorAll('.watchlist-row-user').forEach((row) => row.remove());
+
+  const list = getStoredWatchlist();
+
+  list.forEach((s) => {
+    const row = document.createElement('tr');
+    row.className = 'watchlist-row-user';
+    row.style.cursor = 'pointer';
+    const changeClass = s.up ? 'up' : 'down';
+    const initial = (s.symbol || s.name || '?').trim().charAt(0).toUpperCase();
+
+    row.innerHTML = `
+      <td class="col-w-company">
+        <div class="row-co">
+          <div class="w-logo">${initial}</div>
+          <span>${s.name || s.symbol}</span>
+        </div>
+      </td>
+      <td class="col-w-trend"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,20 20,18 40,15 60,17 80,10 98,8" /></svg></td>
+      <td class="col-w-price"><div class="w-price">₹${s.price || '—'}</div></td>
+      <td class="col-w-change"><div class="w-change ${changeClass}">${s.change || ''} ${s.pct || ''}</div></td>
+      <td class="col-w-vol"><div class="w-vol">—</div></td>
+      <td class="col-w-perf">
+        <div class="perf-slider">
+          <span class="perf-label">L</span>
+          <div class="perf-track"><div class="perf-dot" style="left: 50%"></div></div>
+          <span class="perf-label">H</span>
+        </div>
+      </td>
+    `;
+
+    row.addEventListener('click', (e) => {
+      window.location.href = `../stocks/index.html?symbol=${encodeURIComponent(s.symbol || '')}&name=${encodeURIComponent(s.name || '')}&price=${encodeURIComponent(s.price || '')}&change=${encodeURIComponent(s.change || '')}&pct=${encodeURIComponent(s.pct || '')}&up=${s.up}`;
+    });
+
+    body.prepend(row);
+  });
+
+  const header = document.getElementById('watchlistCompanyHeader');
+  if (header) {
+    const total = 5 + list.length;
+    header.childNodes[0].textContent = `Company (${total}) `;
+  }
+}
+
+// ---- Profile dropdown: stocks bought / money available / profit-loss / logout ----
+function getPortfolioSummary() {
+  let portfolio = {};
+  let user = {};
+
+  try {
+    portfolio = JSON.parse(localStorage.getItem('paperbull_portfolio') || '{}');
+  } catch (err) {}
+
+  try {
+    user = JSON.parse(localStorage.getItem('paperbull_user') || '{}');
+  } catch (err) {}
+
+  const moneyAvailable = typeof portfolio.moneyAvailable === 'number'
+    ? portfolio.moneyAvailable
+    : (typeof user.balance === 'number' ? user.balance : 100000);
+
+  return {
+    stocksBought: typeof portfolio.stocksBought === 'number' ? portfolio.stocksBought : 0,
+    moneyAvailable,
+    profitLoss: typeof portfolio.profitLoss === 'number' ? portfolio.profitLoss : 0,
+    profitLossPct: typeof portfolio.profitLossPct === 'number' ? portfolio.profitLossPct : 0,
+  };
+}
+
+function renderProfileDropdown() {
+  const summary = getPortfolioSummary();
+
+  const stocksEl = document.getElementById('statStocksBought');
+  const moneyEl = document.getElementById('statMoneyAvailable');
+  const plEl = document.getElementById('statProfitLoss');
+
+  if (stocksEl) stocksEl.textContent = summary.stocksBought.toLocaleString('en-IN');
+
+  if (moneyEl) moneyEl.textContent = '₹' + summary.moneyAvailable.toLocaleString('en-IN');
+
+  if (plEl) {
+    const sign = summary.profitLoss > 0 ? '+' : '';
+    plEl.textContent = `${sign}₹${summary.profitLoss.toLocaleString('en-IN')} (${sign}${summary.profitLossPct.toFixed(2)}%)`;
+    plEl.classList.remove('up', 'down');
+    if (summary.profitLoss > 0) plEl.classList.add('up');
+    else if (summary.profitLoss < 0) plEl.classList.add('down');
+  }
+
+  try {
+    const stored = localStorage.getItem('paperbull_user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      if (user.fullName) {
+        const initial = user.fullName.trim().charAt(0).toUpperCase();
+        document.querySelectorAll('.profile-dropdown-avatar').forEach((el) => (el.textContent = initial));
+        const nameEl = document.querySelector('.profile-dropdown-name');
+        if (nameEl) nameEl.textContent = user.fullName;
+      }
+    }
+  } catch (err) {}
+
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('paperbull_user');
+      window.location.href = '../index.html';
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', renderProfileDropdown);
+
+document.addEventListener('DOMContentLoaded', renderUserWatchlist);
+
+// ---- Make every stock tile on the dashboard (bought / intraday / etc.) clickable ----
+document.addEventListener('DOMContentLoaded', () => {
+  const clickableStockTiles = document.querySelectorAll('.bought-item[data-symbol], .intraday-item[data-symbol]');
+
+  clickableStockTiles.forEach((tile) => {
+    tile.style.cursor = 'pointer';
+    tile.addEventListener('click', () => {
+      const { symbol, name, price, change, pct, up } = tile.dataset;
+      const params = new URLSearchParams({
+        symbol: symbol || '',
+        name: name || '',
+        price: price || '',
+        change: change || '',
+        pct: pct || '',
+        up: up || 'true',
+      });
+      window.location.href = `../stocks/index.html?${params.toString()}`;
     });
   });
 });

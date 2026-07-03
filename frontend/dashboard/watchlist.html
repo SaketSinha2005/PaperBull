@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PaperBull Watchlist</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+  <div class="sticky-header-wrapper">
+    <header class="navbar">
+      <div class="navbar-left">
+        <div class="logo-mark"></div>
+        <span class="logo-text">PaperBull</span>
+        <nav class="nav-links">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="../stocks/index.html" class="nav-link">Stocks</a>
+          <a href="#" class="nav-link">Options</a>
+          <a href="watchlist.html" class="nav-link active">Watchlist</a>
+          <a href="#" class="nav-link">Orders</a>
+          <a href="#" class="nav-link">Holding</a>
+        </nav>
+      </div>
+      <div class="navbar-right">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="text" placeholder="Search stocks, options...">
+        </div>
+        <div class="profile-menu">
+          <div class="avatar">S</div>
+          <div class="profile-dropdown">
+            <div class="profile-dropdown-inner">
+              <div class="profile-dropdown-header">
+                <div class="profile-dropdown-avatar">S</div>
+                <div>
+                  <div class="profile-dropdown-name">Guest Trader</div>
+                  <div class="profile-dropdown-email">Paper trading account</div>
+                </div>
+              </div>
+              <div class="profile-dropdown-stats">
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Total stocks bought</span>
+                  <span class="profile-stat-value" id="statStocksBought">0</span>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Money available</span>
+                  <span class="profile-stat-value" id="statMoneyAvailable">₹1,00,000</span>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Profit / Loss</span>
+                  <span class="profile-stat-value" id="statProfitLoss">₹0.00 (0.00%)</span>
+                </div>
+              </div>
+              <button class="profile-dropdown-logout" id="logoutBtn">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="ticker-strip">
+      <div class="ticker-left">
+        <span class="ticker-item"><span class="ticker-name">NIFTY</span> <span class="ticker-val">24,056.00</span> <span class="up">+34.35 (0.14%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">SENSEX</span> <span class="ticker-val">77,100.47</span> <span class="up">+109.25 (0.14%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">BANKNIFTY</span> <span class="ticker-val">58,177.05</span> <span class="up">+26.70 (0.05%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">MIDCNIFTY</span> <span class="ticker-val">14,434.55</span> <span class="down">-81.85 (0.56%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">FINNIFTY</span> <span class="ticker-val">26,770.55</span> <span class="up">+34.15 (0.13%)</span></span>
+      </div>
+      <div class="ticker-right">9/15</div>
+    </div>
+  </div>
+
+  <div class="page-wrap-single">
+
+    <section class="card watchlist-card">
+      <div class="watchlist-tabs">
+        <div class="watchlist-tab" id="watchlistTitle">My Watchlist</div>
+        <button class="watchlist-add-tab"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Watchlist</button>
+        <div class="watchlist-tabs-divider"></div>
+      </div>
+
+      <div class="watchlist-toolbar">
+        <div class="watchlist-search">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="text" placeholder="Search your watchlist">
+        </div>
+        <div class="watchlist-actions">
+          <button class="btn-add-stocks"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add stocks</button>
+          <button class="btn-edit"><svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Edit</button>
+        </div>
+      </div>
+
+      <table class="watchlist-table">
+        <thead>
+          <tr>
+            <th class="col-w-company"><span class="th-sort" id="watchlistCompanyHeader">Company (5) <svg viewBox="0 0 24 24" fill="none"><path d="M8 9l4-4 4 4M8 15l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></th>
+            <th class="col-w-trend">Trend</th>
+            <th class="col-w-price"><span class="th-sort">Mkt price <svg viewBox="0 0 24 24" fill="none"><path d="M8 9l4-4 4 4M8 15l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></th>
+            <th class="col-w-change"><span class="th-sort">1D change <svg viewBox="0 0 24 24" fill="none"><path d="M8 9l4-4 4 4M8 15l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></th>
+            <th class="col-w-vol"><span class="th-sort">1D vol <svg viewBox="0 0 24 24" fill="none"><path d="M8 9l4-4 4 4M8 15l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></th>
+            <th class="col-w-perf">52W perf</th>
+          </tr>
+        </thead>
+        <tbody id="watchlistBody">
+          <tr>
+            <td class="col-w-company">
+              <div class="row-co">
+                <div class="w-logo logo-bel">Ξ</div>
+                <span>Bharat Electronics</span>
+              </div>
+            </td>
+            <td class="col-w-trend"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,24 16,22 30,20 44,17 58,15 72,11 86,7 98,4" /></svg></td>
+            <td class="col-w-price"><div class="w-price">₹416.25</div></td>
+            <td class="col-w-change"><div class="w-change up">+₹14.45 (1.08%)</div></td>
+            <td class="col-w-vol"><div class="w-vol">88,44,076</div></td>
+            <td class="col-w-perf">
+              <div class="perf-slider">
+                <span class="perf-label">L</span>
+                <div class="perf-track"><div class="perf-dot" style="left: 68%"></div></div>
+                <span class="perf-label">H</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-w-company">
+              <div class="row-co">
+                <div class="w-logo logo-hdfc">H</div>
+                <span>HDFC Bank</span>
+              </div>
+            </td>
+            <td class="col-w-trend"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline class="down-line" points="2,10 12,18 22,9 32,17 42,11 52,20 62,10 72,19 82,12 92,21 98,15" /></svg></td>
+            <td class="col-w-price"><div class="w-price">₹796.15</div></td>
+            <td class="col-w-change"><div class="w-change down">-₹1.80 (0.23%)</div></td>
+            <td class="col-w-vol"><div class="w-vol">2,80,94,378</div></td>
+            <td class="col-w-perf">
+              <div class="perf-slider">
+                <span class="perf-label">L</span>
+                <div class="perf-track"><div class="perf-dot" style="left: 55%"></div></div>
+                <span class="perf-label">H</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-w-company">
+              <div class="row-co">
+                <div class="w-logo logo-eternal">◐</div>
+                <span>Eternal</span>
+              </div>
+            </td>
+            <td class="col-w-trend"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,26 16,20 30,22 44,16 58,13 72,15 86,7 98,3" /></svg></td>
+            <td class="col-w-price"><div class="w-price">₹273.70</div></td>
+            <td class="col-w-change"><div class="w-change up">+₹13.10 (5.71%)</div></td>
+            <td class="col-w-vol"><div class="w-vol">6,58,45,146</div></td>
+            <td class="col-w-perf">
+              <div class="perf-slider">
+                <span class="perf-label">L</span>
+                <div class="perf-track"><div class="perf-dot" style="left: 74%"></div></div>
+                <span class="perf-label">H</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-w-company">
+              <div class="row-co">
+                <div class="w-logo logo-canara">◭</div>
+                <span>Canara Bank</span>
+              </div>
+            </td>
+            <td class="col-w-trend"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,14 16,10 30,17 44,13 58,20 72,15 86,19 98,12" /></svg></td>
+            <td class="col-w-price"><div class="w-price">₹126.28</div></td>
+            <td class="col-w-change"><div class="w-change up">+₹0.76 (0.61%)</div></td>
+            <td class="col-w-vol"><div class="w-vol">2,84,24,787</div></td>
+            <td class="col-w-perf">
+              <div class="perf-slider">
+                <span class="perf-label">L</span>
+                <div class="perf-track"><div class="perf-dot" style="left: 50%"></div></div>
+                <span class="perf-label">H</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="col-w-company">
+              <div class="row-co">
+                <div class="w-logo logo-tatamotors">T</div>
+                <span>Tata Motors Passenger Vehi...</span>
+              </div>
+            </td>
+            <td class="col-w-trend"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline class="down-line" points="2,8 16,13 30,10 44,17 58,14 72,22 86,18 98,26" /></svg></td>
+            <td class="col-w-price"><div class="w-price">₹347.80</div></td>
+            <td class="col-w-change"><div class="w-change down">-₹4.40 (1.25%)</div></td>
+            <td class="col-w-vol"><div class="w-vol">1,20,59,086</div></td>
+            <td class="col-w-perf">
+              <div class="perf-slider">
+                <span class="perf-label">L</span>
+                <div class="perf-track"><div class="perf-dot" style="left: 60%"></div></div>
+                <span class="perf-label">H</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

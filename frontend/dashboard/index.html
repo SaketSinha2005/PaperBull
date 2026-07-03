@@ -14,10 +14,10 @@
         <div class="logo-mark"></div>
         <span class="logo-text">PaperBull</span>
         <nav class="nav-links">
-          <a href="#" class="nav-link active">Dashboard</a>
-          <a href="#" class="nav-link">Stocks</a>
+          <a href="index.html" class="nav-link active">Dashboard</a>
+          <a href="../stocks/index.html" class="nav-link">Stocks</a>
           <a href="#" class="nav-link">Options</a>
-          <a href="#" class="nav-link">Watchlist</a>
+          <a href="watchlist.html" class="nav-link">Watchlist</a>
           <a href="#" class="nav-link">Orders</a>
           <a href="#" class="nav-link">Holding</a>
         </nav>
@@ -27,7 +27,35 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <input type="text" placeholder="Search stocks, options...">
         </div>
-        <div class="avatar">S</div>
+        <div class="profile-menu">
+          <div class="avatar">S</div>
+          <div class="profile-dropdown">
+            <div class="profile-dropdown-inner">
+              <div class="profile-dropdown-header">
+                <div class="profile-dropdown-avatar">S</div>
+                <div>
+                  <div class="profile-dropdown-name">Guest Trader</div>
+                  <div class="profile-dropdown-email">Paper trading account</div>
+                </div>
+              </div>
+              <div class="profile-dropdown-stats">
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Total stocks bought</span>
+                  <span class="profile-stat-value" id="statStocksBought">0</span>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Money available</span>
+                  <span class="profile-stat-value" id="statMoneyAvailable">₹1,00,000</span>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Profit / Loss</span>
+                  <span class="profile-stat-value" id="statProfitLoss">₹0.00 (0.00%)</span>
+                </div>
+              </div>
+              <button class="profile-dropdown-logout" id="logoutBtn">Logout</button>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -52,25 +80,25 @@
           <a href="#" class="link-arrow">See more <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         </div>
         <div class="bought-grid">
-          <div class="bought-item">
+          <div class="bought-item" data-symbol="VEDANTAIRON" data-name="Vedanta Iron &amp; Steel" data-price="30.88" data-change="+1.47" data-pct="(5.00%)" data-up="true">
             <div class="bought-logo logo-vedanta-iron">V</div>
             <div class="bought-name">Vedanta Iron &amp; Steel</div>
             <div class="bought-price">₹30.88</div>
             <div class="bought-change up">+1.47 (5.00%)</div>
           </div>
-          <div class="bought-item">
+          <div class="bought-item" data-symbol="TATAGOLD" data-name="TATAGOLD" data-price="13.50" data-change="-0.32" data-pct="(2.32%)" data-up="false">
             <div class="bought-logo logo-tatagold">T</div>
             <div class="bought-name">TATAGOLD</div>
             <div class="bought-price">₹13.50</div>
             <div class="bought-change down">-0.32 (2.32%)</div>
           </div>
-          <div class="bought-item">
+          <div class="bought-item" data-symbol="VEDL" data-name="Vedanta" data-price="273.45" data-change="-9.10" data-pct="(3.22%)" data-up="false">
             <div class="bought-logo logo-vedanta">⊙</div>
             <div class="bought-name">Vedanta</div>
             <div class="bought-price">₹273.45</div>
             <div class="bought-change down">-9.10 (3.22%)</div>
           </div>
-          <div class="bought-item">
+          <div class="bought-item" data-symbol="TATSILV" data-name="TATSILV" data-price="21.02" data-change="-0.64" data-pct="(2.95%)" data-up="false">
             <div class="bought-logo logo-tatsilv">T</div>
             <div class="bought-name">TATSILV</div>
             <div class="bought-price">₹21.02</div>
@@ -120,25 +148,25 @@
           <a href="#" class="link-arrow">Intraday screener <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         </div>
         <div class="intraday-grid">
-          <div class="intraday-item">
+          <div class="intraday-item" data-symbol="RAMCOSYS" data-name="Ramco Systems" data-price="709.80" data-change="36.00" data-pct="(5.34%)" data-up="true">
             <div class="intraday-logo logo-ramco-sys">R</div>
             <div class="intraday-name">Ramco Systems</div>
             <div class="intraday-price">₹709.80</div>
             <div class="intraday-change up">36.00 (5.34%)</div>
           </div>
-          <div class="intraday-item">
+          <div class="intraday-item" data-symbol="RELAXO" data-name="Relaxo Footwears" data-price="413.55" data-change="44.60" data-pct="(12.09%)" data-up="true">
             <div class="intraday-logo logo-relaxo">R</div>
             <div class="intraday-name">Relaxo Footwears</div>
             <div class="intraday-price">₹413.55</div>
             <div class="intraday-change up">44.60 (12.09%)</div>
           </div>
-          <div class="intraday-item">
+          <div class="intraday-item" data-symbol="RAMCOIND" data-name="Ramco Industries" data-price="342.75" data-change="38.60" data-pct="(12.69%)" data-up="true">
             <div class="intraday-logo logo-ramco-ind">R</div>
             <div class="intraday-name">Ramco Industries</div>
             <div class="intraday-price">₹342.75</div>
             <div class="intraday-change up">38.60 (12.69%)</div>
           </div>
-          <div class="intraday-item">
+          <div class="intraday-item" data-symbol="PIX" data-name="Pix Transmission" data-price="1,796.10" data-change="183.30" data-pct="(11.37%)" data-up="true">
             <div class="intraday-logo logo-pix">⚙</div>
             <div class="intraday-name">Pix Transmission</div>
             <div class="intraday-price">₹1,796.10</div>
