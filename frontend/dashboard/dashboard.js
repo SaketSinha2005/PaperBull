@@ -46,6 +46,31 @@ document.addEventListener('DOMContentLoaded', () => {
       link.classList.add('active');
     });
   });
+
+  async function updateHeaderTicker() {
+    const response = await fetch('http://localhost:5000/api/header-indices');
+    const data = await response.json();
+
+    console.log("Check 1:", data.length === 0 ? "EMPTY ARRAY RETURNED" : "Data found, length: " + data.length);
+
+    if (data && Array.isArray(data)) {
+      const tickerLeft = document.querySelector('.ticker-left');
+      if (tickerLeft) {
+        tickerLeft.innerHTML = data.map(item => `
+          <span class="ticker-item">
+            <span class="ticker-name">${item.name}</span>
+            <span class="ticker-val">${item.value}</span>
+            <span class="${item.is_up ? 'up' : 'down'}">
+              ${item.change} (${item.pct})
+            </span>
+          </span>
+        `).join('');
+      }
+    }
+  }
+
+  updateHeaderTicker();
+  setInterval(updateHeaderTicker, 5000);
 });
 
 const WATCHLIST_KEY = 'paperbull_watchlist';

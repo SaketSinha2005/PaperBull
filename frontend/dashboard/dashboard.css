@@ -3,10 +3,9 @@ body::-webkit-scrollbar {
   display: none;
 }
 
-/* For Firefox and older Internet Explorer/Edge versions */
 html, body {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;  
+  scrollbar-width: none;    
 }
 
 @font-face {
