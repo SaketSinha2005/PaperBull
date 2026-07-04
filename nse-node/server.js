@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const marketRoutes = require('./market');
 const YahooFinance = require('yahoo-finance2').default;
 const yahooFinance = new YahooFinance();
 
@@ -8,6 +9,7 @@ const app = express();
 const PORT = 5000;
 
 app.use(cors());
+app.use('/api', marketRoutes);
 
 const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
