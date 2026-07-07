@@ -1,15 +1,15 @@
 const express = require("express");
 const router  = express.Router();
 
-const TICKERS = {
-  "^NSEI":                "NIFTY 50",
-  "^NSEBANK":             "NIFTY BANK",
-  "NIFTY_FIN_SERVICE.NS": "NIFTY FIN SERVICE",
-  "^CNXIT":               "NIFTY IT",
-  "^CRSMID":              "NIFTY MIDCAP 100", 
-  "^CNXSC":               "NIFTY SMLCAP 100",
-  "^CNX100":              "NIFTY 100",
-};
+// const TICKERS = {
+//   "^NSEI":                "NIFTY 50",
+//   "^NSEBANK":             "NIFTY BANK",
+//   "NIFTY_FIN_SERVICE.NS": "NIFTY FIN SERVICE",
+//   "^CNXIT":               "NIFTY IT",
+//   "^CRSMID":              "NIFTY MIDCAP 100", 
+//   "^CNXSC":               "NIFTY SMLCAP 100",
+//   "^CNX100":              "NIFTY 100",
+// };
 
 const INDICES = {
   "^NSEI":                { display: "NIFTY",      symbol: "^NSEI" },
@@ -17,6 +17,11 @@ const INDICES = {
   "^NSEBANK":             { display: "BANKNIFTY",  symbol: "^NSEBANK" },
   "^CRSMID":              { display: "MIDCNIFTY",  symbol: "^CRSMID" }, 
   "NIFTY_FIN_SERVICE.NS": { display: "FINNIFTY",   symbol: "NIFTY_FIN_SERVICE.NS" },
+  "^CNXIT":               { display: "NIFTY IT",   symbol: "^CNXIT" },
+  "^CNXAUTO":             { display: "NIFTY AUTO", symbol: "^CNXAUTO" },
+  "^CNXPHARMA":           { display: "NIFTY PHRM", symbol: "^CNXPHARMA" },
+  "^CNXMETAL":            { display: "NIFTY METL", symbol: "^CNXMETAL" },
+  "^CNXFMCG":             { display: "NIFTY FMCG", symbol: "^CNXFMCG" }
 };
 
 const YF_HEADERS = {
@@ -25,7 +30,6 @@ const YF_HEADERS = {
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 };
 
-// 2. Updated to return the 'meta' object which holds the exact live prices
 async function fetchHistory(symbol, rangeDays = 5) {
   const url =
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
@@ -115,8 +119,6 @@ router.get("/chart/:symbol", async (req, res) => {
       close:   q.close[i],
     })).filter(c => c.close != null);
 
-    // 3. FIXED: Find the date of the very last available candle, then filter by that.
-    // This perfectly handles weekends, market holidays, and live hours.
     const lastDate = allCandles[allCandles.length - 1]?.dateStr;
     const latestDayCandles = allCandles.filter(c => c.dateStr === lastDate);
     

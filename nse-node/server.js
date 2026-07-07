@@ -19,9 +19,10 @@ const HEADERS = {
 };
 
 // Reusable function to fetch either Gainers or Losers
-async function fetchMovers(indexType) {
+async function fetchMovers(indexType, requestedCategory = 'NIFTY') {
     const baseResponse = await axios.get("https://www.nseindia.com", { headers: HEADERS });
     let cookieString = '';
+    
     if (baseResponse.headers['set-cookie']) {
         cookieString = baseResponse.headers['set-cookie'].map(c => c.split(';')[0]).join('; ');
     }
@@ -30,27 +31,12 @@ async function fetchMovers(indexType) {
     const url = `https://www.nseindia.com/api/live-analysis-variations?index=${indexType}`;
     const response = await axios.get(url, { headers: reqHeaders });
     
-    const categoryOrder = [
-        'NIFTY',
-        'BANKNIFTY',
-        'NIFTYNEXT50',
-        'SecGtr20',
-        'SecLwr20',
-        'FOSec',
-        'allSec'
-    ];
-
     let moversData = [];
-    for (const category of categoryOrder) {
-        const categoryData = response.data[category];
-        if (categoryData && Array.isArray(categoryData.data) && categoryData.data.length > 0) {
-            moversData = categoryData.data;
-            console.log(`Using ${category} category for ${indexType}`);
-            break;
-        }
-    }
-
-    if (!moversData.length && Array.isArray(response.data.data) && response.data.data.length > 0) {
+    const categoryData = response.data[requestedCategory];
+    
+    if (categoryData && Array.isArray(categoryData.data) && categoryData.data.length > 0) {
+        moversData = categoryData.data;
+    } else if (Array.isArray(response.data.data) && response.data.data.length > 0) {
         moversData = response.data.data;
     }
 
@@ -60,7 +46,6 @@ async function fetchMovers(indexType) {
     for (const stock of dataList) {
         let chartPoints = [];
         try {
-            // Attempt 1: Real NSE Data
             const symbolStr = encodeURIComponent(stock.symbol + 'EQN');
             const chartUrl = `https://www.nseindia.com/api/chart-databyindex?index=${symbolStr}`;
             const chartRes = await axios.get(chartUrl, { headers: reqHeaders });
@@ -73,10 +58,9 @@ async function fetchMovers(indexType) {
             await new Promise(resolve => setTimeout(resolve, 250));
             
         } catch (nseErr) {
-            // Attempt 2: Real Yahoo Finance Fallback
             console.log(`NSE failed for ${stock.symbol}, falling back to Yahoo...`);
             try {
-                    const yfSymbol = `${stock.symbol}.NS`;
+                const yfSymbol = `${stock.symbol}.NS`;
                 const now = new Date();
                 const oneDayAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
                 
@@ -113,25 +97,37 @@ async function fetchMovers(indexType) {
     return mappedStocks;
 }
 
-// Endpoint 1: Gainers
 app.get('/api/gainers', async (req, res) => {
-    try {
-        const data = await fetchMovers('gainers');
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to collect real-time data" });
-    }
+    const category = req.query.category || 'NIFTY';
+    const data = await fetchMovers('gainers', category);
+    res.json(data);
 });
 
-// Endpoint 2: Losers (Using NSE's typo 'loosers')
 app.get('/api/losers', async (req, res) => {
-    try {
-        const data = await fetchMovers('loosers');
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to collect real-time data" });
-    }
+    const category = req.query.category || 'NIFTY';
+    const data = await fetchMovers('loosers', category);
+    res.json(data);
 });
+
+// Endpoint 1: Gainers
+// app.get('/api/gainers', async (req, res) => {
+//     try {
+//         const data = await fetchMovers('gainers');
+//         res.json(data);
+//     } catch (error) {
+//         res.status(500).json({ error: "Failed to collect real-time data" });
+//     }
+// });
+
+// // Endpoint 2: Losers (Using NSE's typo 'loosers')
+// app.get('/api/losers', async (req, res) => {
+//     try {
+//         const data = await fetchMovers('loosers');
+//         res.json(data);
+//     } catch (error) {
+//         res.status(500).json({ error: "Failed to collect real-time data" });
+//     }
+// });
 
 app.listen(PORT, () => {
     console.log(`NSE Backend service running on http://localhost:${PORT}`);

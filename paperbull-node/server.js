@@ -1,7 +1,3 @@
-// server.js — PaperBull Express server
-// Drop-in replacement for the Python FastAPI backend.
-// Exposes the same API surface so the existing frontend needs zero changes.
-
 require("dotenv").config();
 
 const express = require("express");
@@ -13,21 +9,16 @@ const marketRoutes = require("./routes/market");
 const app  = express();
 const PORT = process.env.PORT || 8000;
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors());                        // allow all origins (mirrors Python allow_origins=["*"])
-app.use(express.json());                // parse JSON request bodies
+app.use(cors());                        
+app.use(express.json());             
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-app.use("/api", authRoutes);            // POST /api/signup, POST /api/login
-app.use("/api", marketRoutes);          // GET  /api/live-indices, GET /api/chart/:symbol
+app.use("/api", authRoutes);            
+app.use("/api", marketRoutes);   
 
-// ─── Health check ─────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
-// ─── 404 fallback ─────────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
-// ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`🚀  PaperBull backend running at http://localhost:${PORT}`);
 });

@@ -51,11 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const response = await fetch('http://localhost:5000/api/header-indices');
     const data = await response.json();
 
-    console.log("Check 1:", data.length === 0 ? "EMPTY ARRAY RETURNED" : "Data found, length: " + data.length);
-
     if (data && Array.isArray(data)) {
       const tickerLeft = document.querySelector('.ticker-left');
       if (tickerLeft) {
+        const doubledData = [...data, ...data];
+        
         tickerLeft.innerHTML = data.map(item => `
           <span class="ticker-item">
             <span class="ticker-name">${item.name}</span>
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   updateHeaderTicker();
-  setInterval(updateHeaderTicker, 5000);
+  setInterval(updateHeaderTicker, 1000);
 });
 
 const WATCHLIST_KEY = 'paperbull_watchlist';

@@ -309,15 +309,28 @@ table { width: 100%; border-collapse: collapse; }
 .ticker-strip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 11px 28px;
   border-bottom: 1px solid var(--border-soft);
   font-size: 13px;
+  overflow: hidden;
+  position: relative;
 }
 
 .ticker-left {
   display: flex;
   gap: 28px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  animation: ticker-slide 35s linear infinite;
+}
+
+.ticker-left:hover {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); } 
 }
 
 .ticker-name {
@@ -334,8 +347,14 @@ table { width: 100%; border-collapse: collapse; }
 }
 
 .ticker-right {
+  position: absolute;
+  right: 28px;
+  background: var(--bg-card); 
+  padding-left: 15px;
   color: var(--text-muted);
   font-size: 13px;
+  box-shadow: -12px 0 12px var(--bg-card); 
+  z-index: 2;
 }
 
 .up { color: var(--green); }
@@ -467,6 +486,12 @@ table { width: 100%; border-collapse: collapse; }
   font-weight: 600;
   color: var(--text-secondary);
   background: transparent;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+
+.pill:active {
+  transform: scale(0.93);
 }
 
 .pill.active {
