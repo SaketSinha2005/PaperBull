@@ -1,12 +1,74 @@
 const express = require("express");
 const router  = express.Router();
+const YahooFinance = require("yahoo-finance2").default;
+const yahooFinance = new YahooFinance();
+
+// Curated universe of well-known NSE stocks used to power the "All Stocks"
+// browsing page. Live price/market-cap data is fetched from Yahoo Finance on
+// every request; only the static classification (name/sector/cap-bucket)
+// lives here since that info rarely changes.
+const STOCK_UNIVERSE = [
+  { symbol: "RELIANCE",   name: "Reliance Industries",        sector: "Energy",                cap: "Large" },
+  { symbol: "TCS",        name: "Tata Consultancy Services",  sector: "IT - Services",          cap: "Large" },
+  { symbol: "HDFCBANK",   name: "HDFC Bank",                  sector: "Banking",                cap: "Large" },
+  { symbol: "ICICIBANK",  name: "ICICI Bank",                 sector: "Banking",                cap: "Large" },
+  { symbol: "BHARTIARTL", name: "Bharti Airtel",               sector: "Telecom",                cap: "Large" },
+  { symbol: "INFY",       name: "Infosys",                    sector: "IT - Services",          cap: "Large" },
+  { symbol: "LT",         name: "Larsen & Toubro",             sector: "Infrastructure",         cap: "Large" },
+  { symbol: "SBIN",       name: "State Bank of India",         sector: "Banking",                cap: "Large" },
+  { symbol: "HINDUNILVR", name: "Hindustan Unilever",          sector: "Consumer Durables",      cap: "Large" },
+  { symbol: "ITC",        name: "ITC",                        sector: "FMCG",                   cap: "Large" },
+  { symbol: "HCLTECH",    name: "HCL Technologies",            sector: "IT - Services",          cap: "Large" },
+  { symbol: "WIPRO",      name: "Wipro",                      sector: "IT - Services",          cap: "Large" },
+  { symbol: "MARUTI",     name: "Maruti Suzuki",               sector: "Automobile & Ancillaries",cap: "Large" },
+  { symbol: "TATAMOTORS", name: "Tata Motors",                 sector: "Automobile & Ancillaries",cap: "Large" },
+  { symbol: "TATASTEEL",  name: "Tata Steel",                  sector: "Metals & Mining",        cap: "Large" },
+  { symbol: "JSWSTEEL",   name: "JSW Steel",                   sector: "Metals & Mining",        cap: "Large" },
+  { symbol: "SUNPHARMA",  name: "Sun Pharmaceutical",           sector: "Healthcare",             cap: "Large" },
+  { symbol: "DRREDDY",    name: "Dr. Reddy's Laboratories",     sector: "Healthcare",             cap: "Large" },
+  { symbol: "CIPLA",      name: "Cipla",                      sector: "Healthcare",             cap: "Large" },
+  { symbol: "ASIANPAINT", name: "Asian Paints",                sector: "Consumer Durables",      cap: "Large" },
+  { symbol: "NESTLEIND",  name: "Nestle India",                sector: "FMCG",                   cap: "Large" },
+  { symbol: "TITAN",      name: "Titan Company",               sector: "Consumer Durables",      cap: "Large" },
+  { symbol: "BAJFINANCE", name: "Bajaj Finance",               sector: "Financial",              cap: "Large" },
+  { symbol: "BAJAJFINSV", name: "Bajaj Finserv",               sector: "Financial",              cap: "Large" },
+  { symbol: "KOTAKBANK",  name: "Kotak Mahindra Bank",          sector: "Banking",                cap: "Large" },
+  { symbol: "AXISBANK",   name: "Axis Bank",                   sector: "Banking",                cap: "Large" },
+  { symbol: "ULTRACEMCO", name: "UltraTech Cement",             sector: "Construction Materials", cap: "Large" },
+  { symbol: "POWERGRID",  name: "Power Grid Corporation",       sector: "Energy",                 cap: "Large" },
+  { symbol: "NTPC",       name: "NTPC",                       sector: "Energy",                 cap: "Large" },
+  { symbol: "ONGC",       name: "Oil & Natural Gas Corp",       sector: "Energy",                 cap: "Large" },
+  { symbol: "COALINDIA",  name: "Coal India",                  sector: "Energy",                 cap: "Large" },
+  { symbol: "ADANIENT",   name: "Adani Enterprises",            sector: "Diversified",            cap: "Large" },
+  { symbol: "ADANIPORTS", name: "Adani Ports & SEZ",            sector: "Infrastructure",         cap: "Large" },
+  { symbol: "M&M",        name: "Mahindra & Mahindra",          sector: "Automobile & Ancillaries",cap: "Large" },
+  { symbol: "HEROMOTOCO", name: "Hero MotoCorp",                sector: "Automobile & Ancillaries",cap: "Mid" },
+  { symbol: "EICHERMOT",  name: "Eicher Motors",                sector: "Automobile & Ancillaries",cap: "Mid" },
+  { symbol: "DIVISLAB",   name: "Divi's Laboratories",          sector: "Healthcare",             cap: "Mid" },
+  { symbol: "BRITANNIA",  name: "Britannia Industries",         sector: "FMCG",                   cap: "Mid" },
+  { symbol: "HDFCLIFE",   name: "HDFC Life Insurance",          sector: "Financial",              cap: "Mid" },
+  { symbol: "SBILIFE",    name: "SBI Life Insurance",           sector: "Financial",              cap: "Mid" },
+  { symbol: "TECHM",      name: "Tech Mahindra",                sector: "IT - Services",          cap: "Mid" },
+  { symbol: "INDUSINDBK", name: "IndusInd Bank",                sector: "Banking",                cap: "Mid" },
+  { symbol: "BPCL",       name: "Bharat Petroleum",             sector: "Energy",                 cap: "Mid" },
+  { symbol: "TATACONSUM", name: "Tata Consumer Products",       sector: "FMCG",                   cap: "Mid" },
+  { symbol: "APOLLOHOSP", name: "Apollo Hospitals",             sector: "Healthcare",             cap: "Mid" },
+  { symbol: "UPL",        name: "UPL",                         sector: "Agriculture",            cap: "Mid" },
+  { symbol: "SHREECEM",   name: "Shree Cement",                 sector: "Construction Materials", cap: "Mid" },
+  { symbol: "VEDL",       name: "Vedanta",                     sector: "Metals & Mining",        cap: "Mid" },
+];
+
+const yfSymbol = (symbol) => (symbol.includes(".") ? symbol : `${symbol}.NS`);
+
+const fmtNumber = (n) =>
+  n == null || Number.isNaN(n) ? null : Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
 // const TICKERS = {
 //   "^NSEI":                "NIFTY 50",
 //   "^NSEBANK":             "NIFTY BANK",
 //   "NIFTY_FIN_SERVICE.NS": "NIFTY FIN SERVICE",
 //   "^CNXIT":               "NIFTY IT",
-//   "^CRSMID":              "NIFTY MIDCAP 100", 
+//   "^CRSMID":              "NIFTY MIDCAP 100",
 //   "^CNXSC":               "NIFTY SMLCAP 100",
 //   "^CNX100":              "NIFTY 100",
 // };
@@ -15,7 +77,7 @@ const INDICES = {
   "^NSEI":                { display: "NIFTY",      symbol: "^NSEI" },
   "^BSESN":               { display: "SENSEX",     symbol: "^BSESN" },
   "^NSEBANK":             { display: "BANKNIFTY",  symbol: "^NSEBANK" },
-  "^CRSMID":              { display: "MIDCNIFTY",  symbol: "^CRSMID" }, 
+  "^CRSMID":              { display: "MIDCNIFTY",  symbol: "^CRSMID" },
   "NIFTY_FIN_SERVICE.NS": { display: "FINNIFTY",   symbol: "NIFTY_FIN_SERVICE.NS" },
   "^CNXIT":               { display: "NIFTY IT",   symbol: "^CNXIT" },
   "^CNXAUTO":             { display: "NIFTY AUTO", symbol: "^CNXAUTO" },
@@ -42,7 +104,7 @@ async function fetchHistory(symbol, rangeDays = 5) {
   const result = json?.chart?.result?.[0];
   if (!result) throw new Error(`No data for ${symbol}`);
 
-  return { meta: result.meta }; 
+  return { meta: result.meta };
 }
 
 async function fetchIntraday(symbol) {
@@ -70,7 +132,7 @@ router.get("/live-indices", async (_req, res) => {
   for (const [symbol, name] of Object.entries(TICKERS)) {
     try {
       const { meta } = await fetchHistory(symbol, 1);
-      
+
       const current = meta.regularMarketPrice;
       const prev    = meta.chartPreviousClose || meta.previousClose;
 
@@ -121,7 +183,7 @@ router.get("/chart/:symbol", async (req, res) => {
 
     const lastDate = allCandles[allCandles.length - 1]?.dateStr;
     const latestDayCandles = allCandles.filter(c => c.dateStr === lastDate);
-    
+
     const candles = latestDayCandles.map(
       ({ time, open, high, low, close }) => ({ time, open, high, low, close })
     );
@@ -149,7 +211,7 @@ router.get("/header-indices", async (_req, res) => {
   for (const [symbol, indexInfo] of Object.entries(INDICES)) {
     try {
       const { meta } = await fetchHistory(symbol, 1);
-      
+
       const current = meta.regularMarketPrice;
       const prev    = meta.chartPreviousClose || meta.previousClose;
 
@@ -172,6 +234,126 @@ router.get("/header-indices", async (_req, res) => {
   }
 
   res.json(results);
+});
+
+// GET /api/stocks — powers the "All Stocks" browsing page.
+// Returns live price/market-cap for the curated stock universe so the
+// frontend can search/filter (sector, index, market cap, price range) purely
+// client-side without hammering Yahoo per keystroke.
+router.get("/stocks", async (_req, res) => {
+  try {
+    const symbols = STOCK_UNIVERSE.map((s) => yfSymbol(s.symbol));
+    const quotes = await yahooFinance.quote(symbols);
+    const quoteList = Array.isArray(quotes) ? quotes : [quotes];
+
+    const bySymbol = {};
+    quoteList.forEach((q) => {
+      if (q && q.symbol) bySymbol[q.symbol] = q;
+    });
+
+    const results = STOCK_UNIVERSE.map((s) => {
+      const q = bySymbol[yfSymbol(s.symbol)];
+      if (!q || q.regularMarketPrice == null) return null;
+
+      const price = q.regularMarketPrice;
+      const change = q.regularMarketChange ?? 0;
+      const changePct = q.regularMarketChangePercent ?? 0;
+      const marketCapCr = q.marketCap ? Math.round(q.marketCap / 1e7) : null;
+
+      return {
+        symbol: s.symbol,
+        name: q.longName || q.shortName || s.name,
+        sector: s.sector,
+        cap: s.cap,
+        price: Math.round(price * 100) / 100,
+        change: Math.round(change * 100) / 100,
+        changePct: Math.round(changePct * 100) / 100,
+        is_up: change >= 0,
+        marketCapCr,
+      };
+    }).filter(Boolean);
+
+    res.json(results);
+  } catch (err) {
+    console.error("Error fetching /api/stocks:", err.message);
+    res.status(500).json({ error: "Failed to fetch stock list" });
+  }
+});
+
+// GET /api/stock/:symbol — powers the stock detail page (opened whenever a
+// stock is clicked, from the All Stocks list, the dashboard, or watchlist).
+router.get("/stock/:symbol", async (req, res) => {
+  const rawSymbol = req.params.symbol.toUpperCase();
+  const symbol = yfSymbol(rawSymbol);
+  const universeEntry = STOCK_UNIVERSE.find((s) => s.symbol === rawSymbol);
+
+  try {
+    const [quote, summary] = await Promise.all([
+      yahooFinance.quote(symbol),
+      yahooFinance
+        .quoteSummary(symbol, { modules: ["assetProfile", "summaryDetail", "defaultKeyStatistics"] })
+        .catch(() => null),
+    ]);
+
+    if (!quote || quote.regularMarketPrice == null) {
+      return res.status(404).json({ error: "Stock not found" });
+    }
+
+    const profile = (summary && summary.assetProfile) || {};
+    const detail = (summary && summary.summaryDetail) || {};
+    const stats = (summary && summary.defaultKeyStatistics) || {};
+
+    const price = quote.regularMarketPrice;
+    const change = quote.regularMarketChange ?? 0;
+    const changePct = quote.regularMarketChangePercent ?? 0;
+    const marketCapCr = quote.marketCap ? Math.round(quote.marketCap / 1e7) : null;
+    const sign = change >= 0 ? "+" : "";
+
+    res.json({
+      symbol: rawSymbol,
+      name: quote.longName || quote.shortName || (universeEntry && universeEntry.name) || rawSymbol,
+      exchange: "NSE",
+      cap: universeEntry ? `${universeEntry.cap} Cap` : null,
+      sector: profile.sector || (universeEntry && universeEntry.sector) || null,
+      industry: profile.industry || null,
+      price: fmtNumber(price),
+      change: `${sign}${change.toFixed(2)}`,
+      pct: `(${Math.abs(changePct).toFixed(2)}%)`,
+      up: change >= 0,
+      status: quote.marketState === "REGULAR" ? "Market open" : "Market closed",
+      time: quote.regularMarketTime
+        ? new Date(quote.regularMarketTime).toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }) + " IST"
+        : null,
+      todaysLow: fmtNumber(quote.regularMarketDayLow),
+      todaysHigh: fmtNumber(quote.regularMarketDayHigh),
+      weekLow: fmtNumber(quote.fiftyTwoWeekLow),
+      weekHigh: fmtNumber(quote.fiftyTwoWeekHigh),
+      open: fmtNumber(quote.regularMarketOpen),
+      prevClose: fmtNumber(quote.regularMarketPreviousClose),
+      volume: quote.regularMarketVolume != null ? Number(quote.regularMarketVolume).toLocaleString("en-IN") : null,
+      about: profile.longBusinessSummary || null,
+      headquarters: [profile.city, profile.country].filter(Boolean).join(", ") || null,
+      website: profile.website ? profile.website.replace(/^https?:\/\//, "").replace(/\/$/, "") : null,
+      marketCapCr,
+      fundamentals: {
+        marketCap: marketCapCr != null ? `₹${marketCapCr.toLocaleString("en-IN")} Cr` : null,
+        peRatio: detail.trailingPE != null ? detail.trailingPE.toFixed(2) : null,
+        eps: stats.trailingEps != null ? stats.trailingEps.toFixed(2) : null,
+        pbRatio: stats.priceToBook != null ? stats.priceToBook.toFixed(2) : null,
+        dividendYield: detail.dividendYield != null ? `${(detail.dividendYield * 100).toFixed(2)}%` : null,
+        bookValue: stats.bookValue != null ? stats.bookValue.toFixed(2) : null,
+      },
+    });
+  } catch (err) {
+    console.error(`Error fetching /api/stock/${rawSymbol}:`, err.message);
+    res.status(500).json({ error: "Failed to fetch stock detail" });
+  }
 });
 
 module.exports = router;

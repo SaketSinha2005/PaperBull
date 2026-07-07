@@ -29,3 +29,561 @@ html, body, #root {
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* ── All Stocks page ─────────────────────────────────────────────── */
+
+.all-stocks-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.filters-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 18px;
+  position: sticky;
+  top: 92px;
+}
+
+.filters-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.filters-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.filters-clear-all {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.filter-group {
+  border-top: 1px solid var(--border-soft);
+  padding: 14px 0;
+}
+
+.filter-group:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.filter-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.filter-group-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.filter-group-chevron.open {
+  transform: rotate(90deg);
+}
+
+.filter-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-color);
+}
+
+.filter-search svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.filter-search input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.filter-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.filter-checklist {
+  margin-top: 10px;
+  max-height: 190px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding-right: 4px;
+}
+
+.filter-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+
+.filter-checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--green);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.filter-checkbox-row span {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  transition: color 0.15s ease;
+}
+
+.filter-checkbox-row:hover span {
+  color: var(--text-primary);
+}
+
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.range-inputs input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 7px 8px;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+}
+
+.range-inputs input[type="number"]:focus {
+  border-color: var(--green);
+}
+
+.range-inputs-sep {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.range-slider-track {
+  position: relative;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg-pill);
+  margin-top: 14px;
+}
+
+.range-slider-fill {
+  position: absolute;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--green);
+}
+
+.range-slider-track input[type="range"] {
+  position: absolute;
+  width: 100%;
+  top: -8px;
+  height: 20px;
+  margin: 0;
+  background: none;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.range-slider-track input[type="range"]::-webkit-slider-thumb {
+  pointer-events: all;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 2px solid var(--bg-card);
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--green);
+}
+
+.range-slider-track input[type="range"]::-moz-range-thumb {
+  pointer-events: all;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 2px solid var(--bg-card);
+  cursor: pointer;
+}
+
+.filter-quick-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.filter-quick-btn {
+  flex: 1;
+  padding: 7px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-pill);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.filter-quick-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.filter-quick-btn.active {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.stocks-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stocks-search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+}
+
+.stocks-search-box svg {
+  width: 17px;
+  height: 17px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.stocks-search-box input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.stocks-search-box input::placeholder {
+  color: var(--text-muted);
+}
+
+.stocks-toolbar-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.stocks-toolbar-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.stocks-toolbar-btn.text-btn {
+  width: auto;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  border-color: var(--green);
+  background: var(--green-bg);
+}
+
+.stocks-results-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stocks-results-count {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stocks-results-count span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.active-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 20px;
+  background: var(--green-bg);
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.filter-chip button {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.filter-chip button:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.stocks-table-wrap {
+  margin-top: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.stocks-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stocks-table thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  white-space: nowrap;
+}
+
+.stocks-table th.num,
+.stocks-table td.num {
+  text-align: right;
+}
+
+.stocks-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.stocks-table tbody tr:hover {
+  background: var(--bg-card-alt);
+}
+
+.stocks-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.stocks-table td {
+  padding: 14px 20px;
+  vertical-align: middle;
+}
+
+.stock-row-company {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stock-row-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: var(--bg-pill);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.stock-row-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.stock-row-symbol {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.stock-row-spark {
+  width: 72px;
+  height: 26px;
+  display: block;
+}
+
+.stock-row-spark polyline {
+  fill: none;
+  stroke-width: 1.6;
+}
+
+.stock-row-spark.spark-up polyline { stroke: var(--green); }
+.stock-row-spark.spark-down polyline { stroke: var(--red); }
+
+.stock-row-price {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.stock-row-change {
+  font-size: 11.5px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.stock-row-mcap {
+  font-size: 13.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.stock-row-add {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  background: var(--bg-card-alt);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.stock-row-add:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.stock-row-add.added {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.stocks-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+
+.stocks-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.stocks-back-link:hover {
+  color: var(--text-primary);
+}
+
+.stocks-back-link svg {
+  width: 15px;
+  height: 15px;
+}
+
+@media (max-width: 1100px) {
+  .all-stocks-layout {
+    grid-template-columns: 1fr;
+  }
+  .filters-panel {
+    position: static;
+  }
+}

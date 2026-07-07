@@ -161,6 +161,39 @@ const SendIcon = (p) => (
   />
 );
 
+const SlidersIcon = (p) => (
+  <Icon
+    className={p.className}
+    path={
+      <>
+        <line x1="4" y1="21" x2="4" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="4" y1="10" x2="4" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="12" y1="21" x2="12" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="12" y1="8" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="20" y1="21" x2="20" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="20" y1="12" x2="20" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="4" cy="12" r="2" stroke="currentColor" strokeWidth="2" />
+        <circle cx="12" cy="10" r="2" stroke="currentColor" strokeWidth="2" />
+        <circle cx="20" cy="14" r="2" stroke="currentColor" strokeWidth="2" />
+      </>
+    }
+  />
+);
+
+const XIcon = (p) => (
+  <Icon
+    className={p.className}
+    path={<path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
+  />
+);
+
+const ArrowLeftIcon = (p) => (
+  <Icon
+    className={p.className}
+    path={<path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+  />
+);
+
 const indices = [
   { name: "NIFTY", value: "24,056.00", change: "+34.35", pct: "+0.14%", up: true },
   { name: "SENSEX", value: "77,100.47", change: "+109.25", pct: "+0.14%", up: true },
@@ -199,20 +232,86 @@ const stock = {
   website: "tcs.com",
 };
 
+const STOCKS_API_BASE = "http://localhost:5000";
+
+// Mutates the shared `stock` object with whatever fields are present on
+// `entry`, leaving everything else (about/fundamentals/etc.) as-is until a
+// live fetch fills it in. Used both for the initial query-string handoff
+// and for clicks on a row in the All Stocks list.
+function applyEntryToStock(entry) {
+  if (!entry) return;
+  if (entry.symbol) stock.symbol = entry.symbol;
+  if (entry.name) stock.name = entry.name;
+  if (entry.price != null) stock.price = String(entry.price);
+  if (entry.change != null) stock.change = String(entry.change);
+  if (entry.pct != null) stock.pct = entry.pct;
+  if (entry.up != null) stock.up = entry.up === true || entry.up === "true";
+  if (entry.sector) stock.sector = entry.sector;
+  if (entry.cap) stock.cap = entry.cap.includes("Cap") ? entry.cap : `${entry.cap} Cap`;
+}
+
+// Merges a `/api/stock/:symbol` response into the shared `stock` object and
+// the module-level `fundamentals` list, only overwriting fields the backend
+// actually returned so a slow/failed fetch never blanks out what's on screen.
+function mergeStockDetail(data) {
+  if (!data) return;
+  const fields = [
+    "name", "exchange", "cap", "sector", "industry", "price", "change", "pct", "up",
+    "status", "time", "todaysLow", "todaysHigh", "weekLow", "weekHigh", "open",
+    "prevClose", "volume", "about", "headquarters", "website",
+  ];
+  fields.forEach((f) => {
+    if (data[f] !== undefined && data[f] !== null) stock[f] = data[f];
+  });
+
+  if (data.fundamentals) {
+    const map = {
+      marketCap: "Market Cap",
+      peRatio: "P/E Ratio (TTM)",
+      eps: "EPS (TTM)",
+      pbRatio: "P/B Ratio",
+      dividendYield: "Dividend Yield",
+      bookValue: "Book Value",
+    };
+    Object.entries(map).forEach(([key, label]) => {
+      const value = data.fundamentals[key];
+      if (value == null) return;
+      const row = fundamentals.find((f) => f.label === label);
+      if (row) row.value = value;
+    });
+  }
+}
+
+async function fetchStocksList() {
+  const res = await fetch(`${STOCKS_API_BASE}/api/stocks`);
+  if (!res.ok) throw new Error("Failed to fetch stocks");
+  return res.json();
+}
+
+async function fetchStockDetail(symbol) {
+  const res = await fetch(`${STOCKS_API_BASE}/api/stock/${encodeURIComponent(symbol)}`);
+  if (!res.ok) throw new Error("Failed to fetch stock detail");
+  return res.json();
+}
+
 // If we arrived here from a click on a stock elsewhere in the app (dashboard, watchlist, etc.)
 // the symbol/name/price were passed along in the URL — reflect them on the header so the
 // page actually matches whichever stock was clicked instead of always showing TCS demo data.
+const initialSymbolFromQuery = new URLSearchParams(window.location.search).get("symbol");
+
 (function applyStockFromQueryString() {
   const params = new URLSearchParams(window.location.search);
   const symbol = params.get("symbol");
   if (!symbol) return;
 
-  stock.symbol = symbol;
-  if (params.get("name")) stock.name = params.get("name");
-  if (params.get("price")) stock.price = params.get("price");
-  if (params.get("change")) stock.change = params.get("change");
-  if (params.get("pct")) stock.pct = params.get("pct");
-  if (params.has("up")) stock.up = params.get("up") === "true";
+  applyEntryToStock({
+    symbol,
+    name: params.get("name") || undefined,
+    price: params.get("price") || undefined,
+    change: params.get("change") || undefined,
+    pct: params.get("pct") || undefined,
+    up: params.has("up") ? params.get("up") === "true" : undefined,
+  });
 })();
 
 const WATCHLIST_KEY = "paperbull_watchlist";
@@ -344,6 +443,20 @@ const aiSuggestions = [
   "What are the key strengths of TCS?",
   "Compare TCS with similar stocks",
 ];
+
+const SECTOR_OPTIONS = [
+  "Agriculture", "Banking", "Construction Materials", "Consumer Durables", "Diversified",
+  "Energy", "FMCG", "Financial", "Healthcare", "Infrastructure", "IT - Services",
+  "Metals & Mining", "Telecom", "Automobile & Ancillaries",
+];
+
+const INDEX_OPTIONS = [
+  "Nifty 50", "Nifty Next 50", "Nifty Midcap 150", "Nifty Smallcap 250",
+  "Bank Nifty", "Fin Nifty", "Nifty 100",
+];
+
+const CAP_RANGE_MAX = 2000000;
+const PRICE_RANGE_MAX = 10000;
 
 const navRoutes = {
   Dashboard: "../dashboard/index.html",
@@ -1124,8 +1237,316 @@ function AIAssistant() {
   );
 }
 
-function StocksPage({ navActive, onNavChange }) {
-  const [tab, setTab] = useState("Overview");
+// PaperBull executes paper trades at a tiny, deterministic spread off the
+// live market price so "Our Price" never has to hit a second data source.
+function getOurPrice(symbol, price) {
+  if (price == null) return null;
+  let hash = 0;
+  for (let i = 0; i < symbol.length; i++) hash = (hash * 31 + symbol.charCodeAt(i)) >>> 0;
+  const spreadPct = 0.1 + (hash % 90) / 100; // 0.10% – 0.99%
+  const sign = hash % 2 === 0 ? -1 : 1;
+  return Math.max(0, price * (1 + (sign * spreadPct) / 100));
+}
+
+function formatINR(n, decimals = 2) {
+  if (n == null || Number.isNaN(n)) return "—";
+  return Number(n).toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function FilterCheckGroup({ title, options, selected, onToggle, searchable, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [q, setQ] = useState("");
+  const visible = searchable && q ? options.filter((o) => o.toLowerCase().includes(q.toLowerCase())) : options;
+
+  return (
+    <div className="filter-group">
+      <div className="filter-group-header" onClick={() => setOpen((o) => !o)}>
+        <span className="filter-group-title">{title}</span>
+        <ChevronRightIcon className={`filter-group-chevron${open ? " open" : ""}`} />
+      </div>
+      {open && (
+        <>
+          {searchable && (
+            <div className="filter-search">
+              <SearchIcon />
+              <input placeholder={`Search for ${title.toLowerCase()}`} value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+          )}
+          <div className="filter-checklist">
+            {visible.map((opt) => (
+              <label key={opt} className="filter-checkbox-row">
+                <input type="checkbox" checked={selected.has(opt)} onChange={() => onToggle(opt)} />
+                <span>{opt}</span>
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DualRangeFilter({ title, min, max, value, onChange, prefix = "" }) {
+  const [lo, hi] = value;
+  const pctLo = (lo / max) * 100;
+  const pctHi = (hi / max) * 100;
+
+  return (
+    <div className="filter-group">
+      <div className="filter-group-header">
+        <span className="filter-group-title">{title}</span>
+      </div>
+
+      <div className="range-inputs">
+        <input
+          type="number"
+          value={lo}
+          min={min}
+          max={hi}
+          onChange={(e) => onChange([Math.min(Number(e.target.value) || 0, hi), hi])}
+        />
+        <span className="range-inputs-sep">To</span>
+        <input
+          type="number"
+          value={hi}
+          min={lo}
+          max={max}
+          onChange={(e) => onChange([lo, Math.max(Number(e.target.value) || 0, lo)])}
+        />
+      </div>
+
+      <div className="range-slider-track">
+        <div className="range-slider-fill" style={{ left: `${pctLo}%`, width: `${pctHi - pctLo}%` }} />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={lo}
+          onChange={(e) => onChange([Math.min(Number(e.target.value), hi), hi])}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={hi}
+          onChange={(e) => onChange([lo, Math.max(Number(e.target.value), lo)])}
+        />
+      </div>
+    </div>
+  );
+}
+
+function FiltersPanel({ filters, setFilters, onClearAll }) {
+  const toggleSector = (s) => {
+    setFilters((f) => {
+      const next = new Set(f.sectors);
+      next.has(s) ? next.delete(s) : next.add(s);
+      return { ...f, sectors: next };
+    });
+  };
+
+  const toggleIndex = (i) => {
+    setFilters((f) => {
+      const next = new Set(f.indices);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return { ...f, indices: next };
+    });
+  };
+
+  const setCapBucket = (bucket) => {
+    setFilters((f) => ({ ...f, capBucket: f.capBucket === bucket ? null : bucket }));
+  };
+
+  return (
+    <aside className="filters-panel">
+      <div className="filters-panel-header">
+        <span className="filters-panel-title">Filters</span>
+        <button className="filters-clear-all" onClick={onClearAll}>Clear all</button>
+      </div>
+
+      <FilterCheckGroup title="Sectors" options={SECTOR_OPTIONS} selected={filters.sectors} onToggle={toggleSector} searchable />
+      <FilterCheckGroup title="Indices" options={INDEX_OPTIONS} selected={filters.indices} onToggle={toggleIndex} />
+
+      <div className="filter-group">
+        <DualRangeFilter
+          title="Market Cap (Cr)"
+          min={0}
+          max={CAP_RANGE_MAX}
+          value={filters.marketCap}
+          onChange={(v) => setFilters((f) => ({ ...f, marketCap: v }))}
+        />
+        <div className="filter-quick-buttons">
+          {["Small Cap", "Mid Cap", "Large Cap"].map((label) => {
+            const bucket = label.replace(" Cap", "");
+            return (
+              <button
+                key={label}
+                className={`filter-quick-btn${filters.capBucket === bucket ? " active" : ""}`}
+                onClick={() => setCapBucket(bucket)}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="filter-group">
+        <DualRangeFilter
+          title="Price Range (₹)"
+          min={0}
+          max={PRICE_RANGE_MAX}
+          value={filters.price}
+          onChange={(v) => setFilters((f) => ({ ...f, price: v }))}
+        />
+      </div>
+    </aside>
+  );
+}
+
+function StockListRow({ item, onSelect }) {
+  const [added, setAdded] = useState(() => isInWatchlist(item.symbol));
+  const up = item.is_up;
+  const ourPrice = getOurPrice(item.symbol, item.price);
+  const initial = (item.symbol || item.name || "?").trim().charAt(0).toUpperCase();
+
+  // deterministic-looking little sparkline so every row doesn't look identical
+  const sparkPoints = useMemo(() => {
+    let seed = 0;
+    for (let i = 0; i < item.symbol.length; i++) seed = (seed * 17 + item.symbol.charCodeAt(i)) % 97;
+    const pts = [];
+    let v = 12;
+    for (let i = 0; i < 8; i++) {
+      seed = (seed * 53 + 7) % 97;
+      v += ((seed % 9) - (up ? 3 : 5)) * 0.8;
+      v = Math.max(2, Math.min(22, v));
+      pts.push(`${(i / 7) * 100},${(24 - v).toFixed(1)}`);
+    }
+    return pts.join(" ");
+  }, [item.symbol, up]);
+
+  const handleAdd = (e) => {
+    e.stopPropagation();
+    const nowAdded = toggleWatchlist({
+      symbol: item.symbol,
+      name: item.name,
+      price: item.price,
+      change: item.change,
+      pct: `(${Math.abs(item.changePct).toFixed(2)}%)`,
+      up,
+    });
+    setAdded(nowAdded);
+  };
+
+  return (
+    <tr onClick={() => onSelect(item)}>
+      <td>
+        <div className="stock-row-company">
+          <div className="stock-row-logo">{initial}</div>
+          <div>
+            <div className="stock-row-name">{item.name}</div>
+            <div className="stock-row-symbol">{item.symbol}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <svg className={`stock-row-spark ${up ? "spark-up" : "spark-down"}`} viewBox="0 0 100 24" preserveAspectRatio="none">
+          <polyline points={sparkPoints} />
+        </svg>
+      </td>
+      <td className="num">
+        <div className="stock-row-price tnum">₹{formatINR(item.price)}</div>
+        <div className={`stock-row-change tnum ${up ? "up" : "down"}`}>
+          {up ? "+" : ""}{formatINR(item.change)} ({up ? "+" : ""}{formatINR(item.changePct)}%)
+        </div>
+      </td>
+      <td className="num">
+        <div className="stock-row-price tnum">₹{formatINR(ourPrice)}</div>
+      </td>
+      <td className="num">
+        <div className="stock-row-mcap tnum">{item.marketCapCr != null ? `₹${Number(item.marketCapCr).toLocaleString("en-IN")}` : "—"}</div>
+      </td>
+      <td>
+        <button className={`stock-row-add${added ? " added" : ""}`} onClick={handleAdd} title={added ? "In watchlist" : "Add to watchlist"}>
+          {added ? <CheckIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
+  const [stocksData, setStocksData] = useState([]);
+  const [loadState, setLoadState] = useState("loading"); // loading | ready | error
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({
+    sectors: new Set(),
+    indices: new Set(),
+    capBucket: null,
+    marketCap: [0, CAP_RANGE_MAX],
+    price: [0, PRICE_RANGE_MAX],
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadState("loading");
+    fetchStocksList()
+      .then((data) => {
+        if (cancelled) return;
+        setStocksData(Array.isArray(data) ? data : []);
+        setLoadState("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setLoadState("error");
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const clearAll = () => {
+    setFilters({
+      sectors: new Set(),
+      indices: new Set(),
+      capBucket: null,
+      marketCap: [0, CAP_RANGE_MAX],
+      price: [0, PRICE_RANGE_MAX],
+    });
+    setSearchTerm("");
+  };
+
+  const filtered = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return stocksData.filter((s) => {
+      if (term && !s.name.toLowerCase().includes(term) && !s.symbol.toLowerCase().includes(term)) return false;
+      if (filters.sectors.size > 0 && !filters.sectors.has(s.sector)) return false;
+      if (filters.capBucket && s.cap !== filters.capBucket) return false;
+      if (s.marketCapCr != null && (s.marketCapCr < filters.marketCap[0] || s.marketCapCr > filters.marketCap[1])) return false;
+      if (s.price < filters.price[0] || s.price > filters.price[1]) return false;
+      return true;
+    });
+  }, [stocksData, searchTerm, filters]);
+
+  const chips = [];
+  filters.sectors.forEach((s) =>
+    chips.push({ key: `sector-${s}`, label: s, onRemove: () => setFilters((f) => { const n = new Set(f.sectors); n.delete(s); return { ...f, sectors: n }; }) })
+  );
+  if (filters.capBucket) {
+    chips.push({ key: "cap", label: `${filters.capBucket} Cap`, onRemove: () => setFilters((f) => ({ ...f, capBucket: null })) });
+  }
+  if (filters.marketCap[0] > 0 || filters.marketCap[1] < CAP_RANGE_MAX) {
+    chips.push({
+      key: "mcap-range",
+      label: `Market Cap ₹${filters.marketCap[0].toLocaleString("en-IN")}–₹${filters.marketCap[1].toLocaleString("en-IN")} Cr`,
+      onRemove: () => setFilters((f) => ({ ...f, marketCap: [0, CAP_RANGE_MAX] })),
+    });
+  }
+  if (filters.price[0] > 0 || filters.price[1] < PRICE_RANGE_MAX) {
+    chips.push({
+      key: "price-range",
+      label: `Price ₹${filters.price[0].toLocaleString("en-IN")}–₹${filters.price[1].toLocaleString("en-IN")}`,
+      onRemove: () => setFilters((f) => ({ ...f, price: [0, PRICE_RANGE_MAX] })),
+    });
+  }
+
   return (
     <div className="stocks-page">
       <div className="sticky-header-wrapper">
@@ -1134,6 +1555,108 @@ function StocksPage({ navActive, onNavChange }) {
       </div>
 
       <main className="max-w-[1600px] mx-auto px-8 py-6">
+        <h1 className="text-[var(--text-primary)] text-2xl font-semibold mb-5">All Stocks</h1>
+
+        <div className="all-stocks-layout">
+          <FiltersPanel filters={filters} setFilters={setFilters} onClearAll={clearAll} />
+
+          <div>
+            <div className="stocks-toolbar">
+              <div className="stocks-search-box">
+                <SearchIcon />
+                <input placeholder="Search stocks, e.g. Reliance, TCS..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
+              <button className="stocks-toolbar-btn"><SlidersIcon className="w-4 h-4" /></button>
+              <button className="stocks-toolbar-btn text-btn" onClick={clearAll}>Clear All</button>
+            </div>
+
+            <div className="stocks-results-row">
+              <div className="stocks-results-count">
+                Search results: <span>{loadState === "ready" ? filtered.length : "…"} stocks</span>
+              </div>
+              {chips.length > 0 && (
+                <div className="active-filter-chips">
+                  {chips.map((c) => (
+                    <span key={c.key} className="filter-chip">
+                      {c.label}
+                      <button onClick={c.onRemove}><XIcon className="w-2.5 h-2.5" /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="stocks-table-wrap">
+              {loadState === "loading" && (
+                <div className="stocks-empty-state">Loading live market data...</div>
+              )}
+              {loadState === "error" && (
+                <div className="stocks-empty-state">
+                  Failed to load stocks. Ensure the backend server is running on {STOCKS_API_BASE}.
+                </div>
+              )}
+              {loadState === "ready" && filtered.length === 0 && (
+                <div className="stocks-empty-state">No stocks match your filters.</div>
+              )}
+              {loadState === "ready" && filtered.length > 0 && (
+                <table className="stocks-table">
+                  <thead>
+                    <tr>
+                      <th>Company</th>
+                      <th></th>
+                      <th className="num">Market Price</th>
+                      <th className="num">Our Price</th>
+                      <th className="num">Market Cap (Cr)</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((s) => (
+                      <StockListRow key={s.symbol} item={s} onSelect={onSelectStock} />
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function StocksPage({ navActive, onNavChange, onBackToList }) {
+  const [tab, setTab] = useState("Overview");
+  const [, forceUpdate] = useState(0);
+
+  // Pull live price/fundamentals/company-profile for whichever stock is
+  // currently selected (works whether we got here via the All Stocks list,
+  // the dashboard, watchlist, or a direct URL with ?symbol=...).
+  useEffect(() => {
+    let cancelled = false;
+    fetchStockDetail(stock.symbol)
+      .then((data) => {
+        if (cancelled) return;
+        mergeStockDetail(data);
+        forceUpdate((n) => n + 1);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [stock.symbol]);
+
+  return (
+    <div className="stocks-page">
+      <div className="sticky-header-wrapper">
+        <TopNav active={navActive} onChange={onNavChange} />
+        <IndicesTicker />
+      </div>
+
+      <main className="max-w-[1600px] mx-auto px-8 py-6">
+        {onBackToList && (
+          <button className="stocks-back-link mb-4" onClick={onBackToList}>
+            <ArrowLeftIcon /> All Stocks
+          </button>
+        )}
         <div className="grid grid-cols-[1fr_380px] gap-6">
           <div className="space-y-4">
             <StockHeader />
@@ -1184,13 +1707,37 @@ function useStickyHeaderOnScroll() {
 
 function App() {
   const [navActive, setNavActive] = useState("Stocks");
+  // Land on the All Stocks browsing page unless we arrived via a direct
+  // stock link (e.g. clicked from the dashboard), in which case go straight
+  // to that stock's detail page.
+  const [stocksView, setStocksView] = useState(initialSymbolFromQuery ? "detail" : "list");
   useStickyHeaderOnScroll();
 
+  const handleNavChange = (t) => {
+    setNavActive(t);
+    if (t === "Stocks") setStocksView("list");
+  };
+
+  const handleSelectStock = (entry) => {
+    applyEntryToStock(entry);
+    window.history.replaceState(null, "", `?symbol=${encodeURIComponent(entry.symbol)}`);
+    setStocksView("detail");
+  };
+
   if (navActive === "Stocks") {
-    return <StocksPage navActive={navActive} onNavChange={setNavActive} />;
+    if (stocksView === "list") {
+      return <AllStocksPage navActive={navActive} onNavChange={handleNavChange} onSelectStock={handleSelectStock} />;
+    }
+    return (
+      <StocksPage
+        navActive={navActive}
+        onNavChange={handleNavChange}
+        onBackToList={() => setStocksView("list")}
+      />
+    );
   }
 
-  return <PlaceholderPage title={navActive} navActive={navActive} onNavChange={setNavActive} />;
+  return <PlaceholderPage title={navActive} navActive={navActive} onNavChange={handleNavChange} />;
 }
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
