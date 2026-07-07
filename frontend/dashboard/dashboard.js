@@ -208,6 +208,73 @@ document.addEventListener('DOMContentLoaded', renderProfileDropdown);
 
 document.addEventListener('DOMContentLoaded', renderUserWatchlist);
 
+function renderPortfolioPage() {
+  const valueEl = document.getElementById('portfolioTotalValue');
+  if (!valueEl) return; // not on the portfolio page
+
+  const summary = getPortfolioSummary();
+
+  let portfolio = {};
+  try {
+    portfolio = JSON.parse(localStorage.getItem('paperbull_portfolio') || '{}');
+  } catch (err) {}
+
+  const startingCapital = typeof portfolio.startingCapital === 'number' ? portfolio.startingCapital : 100000;
+  const totalInvested = typeof portfolio.totalInvested === 'number' ? portfolio.totalInvested : (startingCapital - summary.moneyAvailable);
+  const totalReturns = summary.profitLoss;
+  const totalReturnsPct = summary.profitLossPct;
+  const totalValue = totalInvested + totalReturns;
+  const totalValuePct = startingCapital ? (totalValue / startingCapital) * 100 : 0;
+  const dayChange = typeof portfolio.dayChange === 'number' ? portfolio.dayChange : 0;
+  const dayChangePct = typeof portfolio.dayChangePct === 'number' ? portfolio.dayChangePct : 0;
+  const investedPctOfMoney = startingCapital ? (totalInvested / startingCapital) * 100 : 0;
+
+  const fmt = (n) => '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const setChange = (el, amount, pct, showSign = true) => {
+    if (!el) return;
+    const sign = amount > 0 ? '+' : amount < 0 ? '-' : '';
+    el.textContent = `${showSign ? sign : ''}${fmt(amount)} (${sign}${Math.abs(pct).toFixed(2)}%)`;
+    el.classList.remove('up', 'down');
+    if (amount > 0) el.classList.add('up');
+    else if (amount < 0) el.classList.add('down');
+  };
+
+  document.getElementById('portfolioTotalValue').textContent = fmt(totalValue);
+  setChange(document.getElementById('portfolioTotalValueChange'), totalValue, totalValuePct, false);
+
+  document.getElementById('portfolioTotalInvested').textContent = fmt(totalInvested);
+  const investedPctEl = document.getElementById('portfolioTotalInvestedPct');
+  if (investedPctEl) investedPctEl.textContent = `${investedPctOfMoney.toFixed(0)}% of Available Money`;
+
+  document.getElementById('portfolioTotalReturns').textContent = fmt(totalReturns);
+  setChange(document.getElementById('portfolioTotalReturnsPct'), totalReturns, totalReturnsPct, false);
+  const returnsEl = document.getElementById('portfolioTotalReturns');
+  returnsEl.classList.remove('up', 'down');
+  if (totalReturns > 0) returnsEl.classList.add('up');
+  else if (totalReturns < 0) returnsEl.classList.add('down');
+
+  document.getElementById('portfolioDayChange').textContent = fmt(dayChange);
+  setChange(document.getElementById('portfolioDayChangePct'), dayChange, dayChangePct, false);
+  const dayChangeEl = document.getElementById('portfolioDayChange');
+  dayChangeEl.classList.remove('up', 'down');
+  if (dayChange > 0) dayChangeEl.classList.add('up');
+  else if (dayChange < 0) dayChangeEl.classList.add('down');
+
+  const emptyCard = document.getElementById('portfolioEmptyCard');
+  if (emptyCard && summary.stocksBought > 0) {
+    emptyCard.querySelector('.portfolio-empty-title').textContent = 'Ready to add more?';
+    emptyCard.querySelector('.portfolio-empty-text').textContent = 'Keep exploring stocks to grow and diversify your portfolio further.';
+  }
+
+  const goToStocks = () => { window.location.href = '../stocks/index.html'; };
+  const addBtn1 = document.getElementById('addToPortfolioBtn');
+  const addBtn2 = document.getElementById('addToPortfolioBtn2');
+  if (addBtn1) addBtn1.addEventListener('click', goToStocks);
+  if (addBtn2) addBtn2.addEventListener('click', goToStocks);
+}
+
+document.addEventListener('DOMContentLoaded', renderPortfolioPage);
+
 // ---- Make every stock tile on the dashboard (bought / intraday / etc.) clickable ----
 document.addEventListener('DOMContentLoaded', () => {
   const clickableStockTiles = document.querySelectorAll('.bought-item[data-symbol], .intraday-item[data-symbol]');
