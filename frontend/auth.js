@@ -202,7 +202,20 @@
   var googleBtn = modal.querySelector('[data-google-login]');
   if (googleBtn) {
     googleBtn.addEventListener('click', function () {
-      window.location.href = '/dashboard/index.html';
+      window.location.href = API_BASE + '/api/auth/google';
     });
   }
+
+  // If we just bounced back from a failed Google login, surface the error.
+  (function handleGoogleAuthError() {
+    var params = new URLSearchParams(window.location.search);
+    var error = params.get('error');
+    if (error === 'google_auth_failed') {
+      openModal('login');
+      if (loginError) loginError.textContent = 'Google sign-in failed. Please try again.';
+      params.delete('error');
+      var cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  })();
 })();

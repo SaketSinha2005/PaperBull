@@ -1,7 +1,10 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const passport = require("passport");
 const router = express.Router();
 const pool = require("../db");
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:4321";
 
 // POST /api/signup
 router.post("/signup", async (req, res) => {
@@ -123,5 +126,30 @@ router.post("/login", async (req, res) => {
     });
   }
 });
+
+// GET /api/auth/google — kick off the Google OAuth flow
+router.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+  }),
+);
+
+// GET /api/auth/google/callback — Google redirects here after consent
+router.get(
+  "/auth/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: `${FRONTEND_URL}/?error=google_auth_failed`,
+  }),
+  (req, res) => {
+    // req.user was set by the GoogleStrategy verify callback in config/passport.js
+    const payload = Buffer.from(JSON.stringify(req.user)).toString("base64");
+    res.redirect(
+      `${FRONTEND_URL}/auth/callback.html?u=${encodeURIComponent(payload)}`,
+    );
+  },
+);
 
 module.exports = router;

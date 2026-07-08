@@ -19,13 +19,19 @@
 CREATE TABLE IF NOT EXISTS user_auth (
     id                SERIAL PRIMARY KEY,
     email             VARCHAR(255)    NOT NULL UNIQUE,
-    password_hash     VARCHAR(255)    NOT NULL,
+    password_hash     VARCHAR(255),
+    google_id         VARCHAR(255)    UNIQUE,
     email_verified    BOOLEAN         DEFAULT FALSE,
     verification_token VARCHAR(255),
     reset_token       VARCHAR(255),
     last_login        TIMESTAMP,
     created_at        TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Migration for pre-existing databases created before Google auth was added:
+-- (safe to re-run; no-ops if already applied)
+ALTER TABLE user_auth ALTER COLUMN password_hash DROP NOT NULL;
+ALTER TABLE user_auth ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE;
 
 CREATE TABLE IF NOT EXISTS users (
     id               SERIAL PRIMARY KEY,

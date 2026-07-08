@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signing you in… — PaperBull</title>
+<meta name="robots" content="noindex">
+</head>
+<body>
+<p>Signing you in…</p>
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var error = params.get('error');
+
+  if (error) {
+    window.location.href = '/?error=' + encodeURIComponent(error);
+    return;
+  }
+
+  var encoded = params.get('u');
+  if (!encoded) {
+    window.location.href = '/?error=google_auth_failed';
+    return;
+  }
+
+  try {
+    var user = JSON.parse(atob(decodeURIComponent(encoded)));
+    localStorage.setItem('paperbull_user', JSON.stringify({
+      fullName: user.fullName || '',
+      email: user.email || '',
+      balance: typeof user.balance === 'number' ? user.balance : 100000
+    }));
+    window.location.href = '/dashboard/index.html';
+  } catch (e) {
+    window.location.href = '/?error=google_auth_failed';
+  }
+})();
+</script>
+</body>
+</html>
