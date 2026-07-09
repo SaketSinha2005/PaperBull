@@ -126,6 +126,80 @@ async function fetchIntraday(symbol) {
   return { timestamps, q, tz, meta: result.meta };
 }
 
+// Range presets used by the order ticket chart on the Orders page.
+// Maps the UI's short range labels to Yahoo Finance's `range`/`interval`
+// query params.
+const RANGE_PRESETS = {
+  "1D": { range: "1d", interval: "5m" },
+  "1W": { range: "5d", interval: "30m" },
+  "1M": { range: "1mo", interval: "1d" },
+  "3M": { range: "3mo", interval: "1d" },
+  "1Y": { range: "1y", interval: "1wk" },
+  "5Y": { range: "5y", interval: "1mo" },
+};
+
+async function fetchSeries(symbol, presetKey) {
+  const preset = RANGE_PRESETS[presetKey] || RANGE_PRESETS["1D"];
+  const url =
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
+    `?range=${preset.range}&interval=${preset.interval}&includePrePost=false`;
+
+  const resp = await fetch(url, { headers: YF_HEADERS });
+  if (!resp.ok) throw new Error(`Yahoo Finance returned ${resp.status} for ${symbol}`);
+
+  const json = await resp.json();
+  const result = json?.chart?.result?.[0];
+  if (!result) throw new Error(`No data for ${symbol}`);
+
+  const timestamps = result.timestamp || [];
+  const q = result.indicators.quote[0] || {};
+  const closes = q.close || [];
+  const tz = result.meta?.exchangeTimezoneName || "Asia/Kolkata";
+
+  const isIntraday = presetKey === "1D" || presetKey === "1W";
+  const fmt = new Intl.DateTimeFormat("en-IN", isIntraday
+    ? { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false, ...(presetKey === "1W" ? { day: "2-digit", month: "short" } : {}) }
+    : { timeZone: tz, day: "2-digit", month: "short", year: presetKey === "1Y" || presetKey === "5Y" ? "2-digit" : undefined });
+
+  let points = timestamps
+    .map((ts, i) => ({ t: ts, close: closes[i], label: fmt.format(new Date(ts * 1000)) }))
+    .filter((p) => p.close != null);
+
+  // For 1D, restrict to the most recent trading day only (matches /chart/:symbol behaviour).
+  if (presetKey === "1D" && points.length) {
+    const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
+    const lastDay = dayFmt.format(new Date(points[points.length - 1].t * 1000));
+    points = points.filter((p) => dayFmt.format(new Date(p.t * 1000)) === lastDay);
+  }
+
+  const currentPrice = result.meta?.regularMarketPrice ?? points[points.length - 1]?.close ?? 0;
+  const prevClose = result.meta?.chartPreviousClose ?? result.meta?.previousClose ?? points[0]?.close ?? currentPrice;
+  const changePct = prevClose ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
+
+  return {
+    points: points.map((p) => ({ label: p.label, close: Math.round(p.close * 100) / 100 })),
+    price: Math.round(currentPrice * 100) / 100,
+    change: Math.round(changePct * 100) / 100,
+    is_up: changePct >= 0,
+  };
+}
+
+// GET /api/series/:symbol?range=1D|1W|1M|3M|1Y|5Y — powers the price chart
+// on the Orders page, with a selectable time range.
+router.get("/series/:symbol", async (req, res) => {
+  const rawSymbol = req.params.symbol.toUpperCase();
+  const symbol = yfSymbol(rawSymbol);
+  const presetKey = (req.query.range || "1D").toUpperCase();
+
+  try {
+    const series = await fetchSeries(symbol, presetKey);
+    res.json(series);
+  } catch (err) {
+    console.error(`Error fetching /api/series/${rawSymbol}:`, err.message);
+    res.status(500).json({ error: err.message, points: [], price: 0, change: 0, is_up: true });
+  }
+});
+
 router.get("/live-indices", async (_req, res) => {
   const results = [];
 

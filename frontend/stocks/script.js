@@ -463,7 +463,7 @@ const navRoutes = {
   Stocks: "#",
   Options: "#",
   Watchlist: "../dashboard/watchlist.html",
-  Orders: "#",
+  Orders: "../dashboard/orders.html",
   Holding: "#",
 };
 
@@ -658,12 +658,20 @@ function StockHeader() {
             </div>
           </div>
         </div>
-        <button
-          onClick={handleToggleWatchlist}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-medium ${added ? "bg-[var(--green)]/10 border-[var(--green)]/40 text-[var(--green)]" : "bg-[var(--bg-card-alt)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-pill)]"}`}
-        >
-          {added ? <CheckIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />} {added ? "In Watchlist" : "Watchlist"}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleToggleWatchlist}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-medium ${added ? "bg-[var(--green)]/10 border-[var(--green)]/40 text-[var(--green)]" : "bg-[var(--bg-card-alt)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-pill)]"}`}
+          >
+            {added ? <CheckIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />} {added ? "In Watchlist" : "Watchlist"}
+          </button>
+          <a
+            href={`../dashboard/orders.html?symbol=${encodeURIComponent(stock.symbol)}&side=buy`}
+            className="px-5 py-2 rounded-lg text-sm font-semibold bg-[var(--green)] text-[#06211f] hover:brightness-110 transition-all"
+          >
+            Buy
+          </a>
+        </div>
       </div>
 
       <div className="mt-6 flex items-end justify-between flex-wrap gap-6">

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Place Order - PaperBull</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="orders.css">
+</head>
+<body>
+
+  <div class="sticky-header-wrapper">
+    <header class="navbar">
+      <div class="navbar-left">
+        <div class="logo-mark"></div>
+        <span class="logo-text">PaperBull</span>
+        <nav class="nav-links">
+          <a href="index.html" class="nav-link">Dashboard</a>
+          <a href="../stocks/index.html" class="nav-link">Stocks</a>
+          <a href="#" class="nav-link">Options</a>
+          <a href="watchlist.html" class="nav-link">Watchlist</a>
+          <a href="orders.html" class="nav-link active">Orders</a>
+          <a href="portfolio.html" class="nav-link">Portfolio</a>
+        </nav>
+      </div>
+      <div class="navbar-right">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="text" placeholder="Search stocks, options...">
+        </div>
+        <div class="profile-menu">
+          <div class="avatar">S</div>
+          <div class="profile-dropdown">
+            <div class="profile-dropdown-inner">
+              <div class="profile-dropdown-header">
+                <div class="profile-dropdown-avatar">S</div>
+                <div>
+                  <div class="profile-dropdown-name">Guest Trader</div>
+                  <div class="profile-dropdown-email">Paper trading account</div>
+                </div>
+              </div>
+              <div class="profile-dropdown-stats">
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Total stocks bought</span>
+                  <span class="profile-stat-value" id="statStocksBought">0</span>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Money available</span>
+                  <span class="profile-stat-value" id="statMoneyAvailable">₹1,00,000</span>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Profit / Loss</span>
+                  <span class="profile-stat-value" id="statProfitLoss">₹0.00 (0.00%)</span>
+                </div>
+              </div>
+              <button class="profile-dropdown-logout" id="logoutBtn">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="ticker-strip">
+      <div class="ticker-left">
+        <span class="ticker-item"><span class="ticker-name">NIFTY 50</span> <span class="ticker-val">24,058.00</span> <span class="up">+342.35 (1.44%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">SENSEX</span> <span class="ticker-val">79,760.47</span> <span class="up">+1082.35 (1.37%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">BANKNIFTY</span> <span class="ticker-val">58,177.05</span> <span class="up">+287.70 (0.50%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">MIDCNIFTY</span> <span class="ticker-val">14,634.55</span> <span class="down">-83.85 (0.57%)</span></span>
+        <span class="ticker-item"><span class="ticker-name">FINNIFTY</span> <span class="ticker-val">26,770.55</span> <span class="up">+243.65 (0.92%)</span></span>
+      </div>
+      <div class="ticker-right">9/15</div>
+    </div>
+  </div>
+
+  <div class="orders-wrap">
+
+    <!-- ============ LEFT: Place Order panel ============ -->
+    <section class="card order-panel">
+      <div class="order-panel-head">
+        <h2>Place Order</h2>
+        <p>Buy or sell stocks in the market</p>
+      </div>
+
+      <div class="order-side-tabs">
+        <button class="order-side-tab side-buy active" data-side="buy" id="sideTabBuy">Buy</button>
+        <button class="order-side-tab side-sell" data-side="sell" id="sideTabSell">Sell</button>
+      </div>
+
+      <div class="order-field">
+        <label class="order-label">Search Stock</label>
+        <div class="order-search">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="text" id="orderStockSearch" placeholder="Search company name or symbol" autocomplete="off">
+          <div class="order-search-results" id="orderSearchResults"></div>
+        </div>
+      </div>
+
+      <div class="order-selected-stock" id="orderSelectedStock">
+        <div class="order-selected-logo" id="orderSelectedLogo">R</div>
+        <div class="order-selected-info">
+          <div class="order-selected-name" id="orderSelectedName">Reliance Industries</div>
+          <div class="order-selected-sub" id="orderSelectedSub">RELIANCE &middot; NSE</div>
+        </div>
+        <div class="order-selected-price-block">
+          <div class="order-selected-price" id="orderSelectedPrice">&#8377;0.00</div>
+          <div class="order-selected-change up" id="orderSelectedChange">+0.00 (0.00%)</div>
+        </div>
+        <button class="order-selected-remove" id="orderSelectedRemove" title="Remove">&times;</button>
+      </div>
+
+      <div class="order-field">
+        <label class="order-label">Order Type <span class="order-info-dot" title="How this order will be executed">?</span></label>
+        <div class="order-type-tabs">
+          <button class="order-type-tab active" data-type="Market">Market</button>
+          <button class="order-type-tab" data-type="Limit">Limit</button>
+          <button class="order-type-tab" data-type="SL Limit">SL Limit</button>
+          <button class="order-type-tab" data-type="SL Market">SL Market</button>
+        </div>
+      </div>
+
+      <div class="order-field order-field-price" id="orderLimitPriceField" hidden>
+        <label class="order-label">Limit Price</label>
+        <input type="number" id="orderLimitPrice" class="order-input" placeholder="0.00" min="0" step="0.05">
+      </div>
+
+      <div class="order-field order-field-price" id="orderTriggerPriceField" hidden>
+        <label class="order-label">Trigger Price</label>
+        <input type="number" id="orderTriggerPrice" class="order-input" placeholder="0.00" min="0" step="0.05">
+      </div>
+
+      <div class="order-field">
+        <label class="order-label">Quantity <span class="order-info-dot" title="Number of shares to trade">?</span></label>
+        <input type="number" id="orderQty" class="order-input" value="10" min="1" step="1">
+        <div class="order-sub-note">Available: <span id="orderAvailableShares">384 Shares</span></div>
+      </div>
+
+      <div class="order-field">
+        <label class="order-label">Product Type <span class="order-info-dot" title="Delivery keeps holdings; Intraday squares off same day">?</span></label>
+        <div class="order-product-tabs">
+          <button class="order-product-tab active" data-product="Delivery">Delivery</button>
+          <button class="order-product-tab" data-product="Intraday (MIS)">Intraday (MIS)</button>
+        </div>
+      </div>
+
+      <div class="order-estimate-row">
+        <span>Estimated Amount</span>
+        <span id="orderEstimateAmount">&#8377;0.00</span>
+      </div>
+
+      <button class="order-review-btn" id="orderReviewBtn">Review Order</button>
+      <p class="order-error" id="orderError" hidden></p>
+    </section>
+
+    <!-- ============ RIGHT: chart + depth + about + AI ============ -->
+    <div class="orders-right">
+
+      <section class="card order-chart-card">
+        <div class="order-chart-head">
+          <div class="order-chart-stock">
+            <div class="order-chart-logo" id="chartStockLogo">R</div>
+            <div>
+              <div class="order-chart-name" id="chartStockName">Reliance Industries</div>
+              <div class="order-chart-sub" id="chartStockSub">RELIANCE &middot; NSE</div>
+            </div>
+          </div>
+          <a href="#" class="link-arrow order-view-details" id="viewDetailsLink">View Details <svg viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+
+        <div class="order-chart-price-row">
+          <div>
+            <div class="order-chart-price" id="chartPrice">&#8377;0.00</div>
+            <div class="order-chart-change up" id="chartChange">+0.00 (0.00%)</div>
+          </div>
+          <div class="order-chart-hilo">
+            <div><span class="order-hilo-label">Day's High</span><span class="order-hilo-val" id="chartDayHigh">&#8212;</span></div>
+            <div><span class="order-hilo-label">Day's Low</span><span class="order-hilo-val" id="chartDayLow">&#8212;</span></div>
+          </div>
+        </div>
+
+        <div class="order-range-tabs" id="orderRangeTabs">
+          <button class="order-range-tab active" data-range="1D">1D</button>
+          <button class="order-range-tab" data-range="1W">1W</button>
+          <button class="order-range-tab" data-range="1M">1M</button>
+          <button class="order-range-tab" data-range="3M">3M</button>
+          <button class="order-range-tab" data-range="1Y">1Y</button>
+          <button class="order-range-tab" data-range="5Y">5Y</button>
+        </div>
+
+        <div class="order-chart-canvas-wrap">
+          <canvas id="orderChartCanvas"></canvas>
+          <div class="order-chart-loading" id="orderChartLoading">Loading chart...</div>
+        </div>
+      </section>
+
+      <div class="orders-bottom-grid">
+
+        <section class="card order-depth-card">
+          <div class="order-depth-head">
+            <h3>Market Depth</h3>
+          </div>
+          <div class="order-depth-cols">
+            <span>Bid (Buyers)</span>
+            <span>Price</span>
+            <span>Ask (Sellers)</span>
+          </div>
+          <div id="orderDepthRows" class="order-depth-rows"></div>
+          <a href="#" class="link-arrow order-depth-more">View Full Depth <svg viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </section>
+
+        <div class="order-side-cards">
+          <section class="card order-about-card">
+            <h3>About <span id="aboutStockName">Reliance Industries</span></h3>
+            <p id="aboutStockText">Loading company overview&hellip;</p>
+            <a href="#" class="link-arrow" id="aboutViewDetails">View Company Details <svg viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          </section>
+
+          <section class="card order-ai-card">
+            <div class="order-ai-head">
+              <h3>AI Trade Insight</h3>
+              <span class="order-ai-badge" id="aiPredictionBadge">&#8212;</span>
+            </div>
+            <div class="order-ai-row">
+              <span>AI Prediction</span>
+              <span id="aiPredictionVal" class="order-ai-strong">&#8212;</span>
+            </div>
+            <div class="order-ai-row">
+              <span>Confidence</span>
+              <span id="aiConfidenceVal" class="order-ai-strong">&#8212;</span>
+            </div>
+            <a href="#" class="link-arrow" id="aiFullAnalysis">View Full Analysis <svg viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          </section>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Review Order modal ============ -->
+  <div class="order-modal-overlay" id="orderModalOverlay">
+    <div class="order-modal">
+      <div class="order-modal-head">
+        <h3>Review Order</h3>
+        <button class="order-modal-close" id="orderModalClose">&times;</button>
+      </div>
+
+      <div class="order-modal-stock">
+        <div class="order-modal-logo" id="modalStockLogo">R</div>
+        <div class="order-modal-stock-info">
+          <div class="order-modal-stock-name" id="modalStockName">Reliance Industries</div>
+          <div class="order-modal-stock-sub" id="modalStockSub">RELIANCE &middot; NSE</div>
+        </div>
+        <div class="order-modal-price-block">
+          <div class="order-modal-price" id="modalStockPrice">&#8377;0.00</div>
+          <div class="order-modal-change up" id="modalStockChange">+0.00 (0.00%)</div>
+        </div>
+      </div>
+
+      <div class="order-modal-rows">
+        <div class="order-modal-row"><span>Transaction</span><span id="modalTransaction" class="order-modal-transaction buy">Buy</span></div>
+        <div class="order-modal-row"><span>Order Type</span><span id="modalOrderType">Market Order</span></div>
+        <div class="order-modal-row"><span>Quantity</span><span id="modalQuantity">10 Shares</span></div>
+        <div class="order-modal-row"><span>Product Type</span><span id="modalProductType">Delivery</span></div>
+        <div class="order-modal-row" id="modalOrderPriceRow"><span>Order Price</span><span id="modalOrderPrice">Market Price</span></div>
+        <div class="order-modal-row" id="modalTriggerPriceRow" hidden><span>Trigger Price</span><span id="modalTriggerPrice">&#8212;</span></div>
+        <div class="order-modal-row"><span>Estimated Price</span><span id="modalEstimatedPrice">&#8377;0.00</span></div>
+        <div class="order-modal-row order-modal-row-total"><span>Estimated Amount</span><span id="modalEstimatedAmount">&#8377;0.00</span></div>
+      </div>
+
+      <div class="order-modal-note" id="orderModalNote">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="orderModalNoteText">Market orders are executed at the best available price in the market.</span>
+      </div>
+
+      <div class="order-modal-actions">
+        <button class="order-modal-cancel" id="orderModalCancel">Cancel</button>
+        <button class="order-modal-place" id="orderModalPlace">Place Order</button>
+      </div>
+
+      <div class="order-modal-secure">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Your order is secure and encrypted
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Order success toast ============ -->
+  <div class="order-toast" id="orderToast">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span id="orderToastText">Order placed successfully</span>
+  </div>
+
+  <script src="dashboard.js"></script>
+  <script src="orders.js"></script>
+</body>
+</html>
