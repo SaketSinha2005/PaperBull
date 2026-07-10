@@ -698,22 +698,6 @@ function StockHeader() {
   );
 }
 
-function SIPBanner() {
-  return (
-    <button className="group w-full flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-soft)] hover:border-[var(--green)]/30 transition-colors text-left">
-      <div className="w-11 h-11 rounded-xl bg-[var(--green)]/10 border border-[var(--green)]/20 flex items-center justify-center shrink-0">
-        <Repeat2Icon className="w-5 h-5 text-[var(--green)]" />
-      </div>
-      <div className="flex-1">
-        <div className="text-[var(--text-primary)] text-[15px] font-semibold">Create Stock SIP</div>
-        <div className="text-[var(--text-secondary)] text-[12px] mt-0.5">Automate your investments in this Stock</div>
-      </div>
-      <div className="w-9 h-9 rounded-full bg-[var(--bg-card-alt)] border border-[var(--border-color)] flex items-center justify-center group-hover:bg-[var(--green)]/10 group-hover:border-[var(--green)]/30 transition-colors">
-        <ArrowRightIcon className="w-4 h-4 text-[var(--text-secondary)] group-hover:text-[var(--green)]" />
-      </div>
-    </button>
-  );
-}
 
 function StockTabs({ active, onChange }) {
   return (
@@ -1668,7 +1652,6 @@ function StocksPage({ navActive, onNavChange, onBackToList }) {
         <div className="grid grid-cols-[1fr_380px] gap-6">
           <div className="space-y-4">
             <StockHeader />
-            <SIPBanner />
             <StockTabs active={tab} onChange={setTab} />
             <PerformanceChart />
             <AboutSection />
