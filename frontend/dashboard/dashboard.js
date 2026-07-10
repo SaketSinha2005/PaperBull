@@ -126,7 +126,7 @@ function renderUserWatchlist() {
     `;
 
     row.addEventListener('click', (e) => {
-      window.location.href = `../stocks/index.html?symbol=${encodeURIComponent(s.symbol || '')}&name=${encodeURIComponent(s.name || '')}&price=${encodeURIComponent(s.price || '')}&change=${encodeURIComponent(s.change || '')}&pct=${encodeURIComponent(s.pct || '')}&up=${s.up}`;
+      window.location.href = `stocks.html?symbol=${encodeURIComponent(s.symbol || '')}&name=${encodeURIComponent(s.name || '')}&price=${encodeURIComponent(s.price || '')}&change=${encodeURIComponent(s.change || '')}&pct=${encodeURIComponent(s.pct || '')}&up=${s.up}`;
     });
 
     body.prepend(row);
@@ -266,7 +266,7 @@ function renderPortfolioPage() {
     emptyCard.querySelector('.portfolio-empty-text').textContent = 'Keep exploring stocks to grow and diversify your portfolio further.';
   }
 
-  const goToStocks = () => { window.location.href = '../stocks/index.html'; };
+  const goToStocks = () => { window.location.href = 'stocks.html'; };
   const addBtn1 = document.getElementById('addToPortfolioBtn');
   const addBtn2 = document.getElementById('addToPortfolioBtn2');
   if (addBtn1) addBtn1.addEventListener('click', goToStocks);
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pct: pct || '',
         up: up || 'true',
       });
-      window.location.href = `../stocks/index.html?${params.toString()}`;
+      window.location.href = `stocks.html?${params.toString()}`;
     });
   });
 });
@@ -420,7 +420,7 @@ async function fetchTopMovers(container, endpoint = DASHBOARD_API_ENDPOINT) {
 
       row.style.cursor = 'pointer';
       row.addEventListener('click', () => {
-        window.location.href = `../stocks/index.html?symbol=${stock.symbol}`;
+        window.location.href = `stocks.html?symbol=${stock.symbol}`;
       });
 
       row.innerHTML = `

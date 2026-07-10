@@ -202,7 +202,7 @@ const indices = [
   { name: "FINNIFTY", value: "26,770.55", change: "+34.15", pct: "+0.13%", up: true },
 ];
 
-const navTabs = ["Dashboard", "Stocks", "Options", "Watchlist", "Orders", "Holding"];
+const navTabs = ["Dashboard", "Stocks", "Options", "Watchlist", "Orders", "Portfolio"];
 
 const stock = {
   name: "Tata Consultancy Services",
@@ -459,12 +459,12 @@ const CAP_RANGE_MAX = 2000000;
 const PRICE_RANGE_MAX = 10000;
 
 const navRoutes = {
-  Dashboard: "../dashboard/index.html",
+  Dashboard: "index.html",
   Stocks: "#",
   Options: "#",
-  Watchlist: "../dashboard/watchlist.html",
-  Orders: "../dashboard/orders.html",
-  Holding: "#",
+  Watchlist: "watchlist.html",
+  Orders: "orders.html",
+  Portfolio: "portfolio.html",
 };
 
 function getAvatarInitial() {
@@ -666,7 +666,7 @@ function StockHeader() {
             {added ? <CheckIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />} {added ? "In Watchlist" : "Watchlist"}
           </button>
           <a
-            href={`../dashboard/orders.html?symbol=${encodeURIComponent(stock.symbol)}&side=buy`}
+            href={`orders.html?symbol=${encodeURIComponent(stock.symbol)}&side=buy`}
             className="px-5 py-2 rounded-lg text-sm font-semibold bg-[var(--green)] text-[#06211f] hover:brightness-110 transition-all"
           >
             Buy

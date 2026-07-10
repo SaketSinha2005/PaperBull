@@ -189,8 +189,8 @@
     $("chartDayLow").textContent = s.todaysLow != null ? "₹" + s.todaysLow : "—";
 
     $("aboutStockName").textContent = s.name;
-    $("viewDetailsLink").href = `../stocks/index.html?symbol=${encodeURIComponent(s.symbol)}`;
-    $("aboutViewDetails").href = `../stocks/index.html?symbol=${encodeURIComponent(s.symbol)}`;
+    $("viewDetailsLink").href = `stocks.html?symbol=${encodeURIComponent(s.symbol)}`;
+    $("aboutViewDetails").href = `stocks.html?symbol=${encodeURIComponent(s.symbol)}`;
   }
 
   function setChangeEl(el, change, pct, up) {
@@ -298,7 +298,7 @@
     $("aiPredictionVal").textContent = insight.label;
     $("aiPredictionVal").className = "order-ai-strong " + (insight.cls === "bullish" ? "up" : insight.cls === "bearish" ? "down" : "");
     $("aiConfidenceVal").textContent = insight.confidence + "%";
-    $("aiFullAnalysis").href = `../stocks/index.html?symbol=${encodeURIComponent(currentStock.symbol)}`;
+    $("aiFullAnalysis").href = `stocks.html?symbol=${encodeURIComponent(currentStock.symbol)}`;
   }
 
   function renderAboutCard() {
