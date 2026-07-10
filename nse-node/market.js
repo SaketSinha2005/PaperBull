@@ -3,10 +3,6 @@ const router  = express.Router();
 const YahooFinance = require("yahoo-finance2").default;
 const yahooFinance = new YahooFinance();
 
-// Curated universe of well-known NSE stocks used to power the "All Stocks"
-// browsing page. Live price/market-cap data is fetched from Yahoo Finance on
-// every request; only the static classification (name/sector/cap-bucket)
-// lives here since that info rarely changes.
 const STOCK_UNIVERSE = [
   { symbol: "RELIANCE",   name: "Reliance Industries",        sector: "Energy",                cap: "Large" },
   { symbol: "TCS",        name: "Tata Consultancy Services",  sector: "IT - Services",          cap: "Large" },
@@ -310,10 +306,6 @@ router.get("/header-indices", async (_req, res) => {
   res.json(results);
 });
 
-// GET /api/stocks — powers the "All Stocks" browsing page.
-// Returns live price/market-cap for the curated stock universe so the
-// frontend can search/filter (sector, index, market cap, price range) purely
-// client-side without hammering Yahoo per keystroke.
 router.get("/stocks", async (_req, res) => {
   try {
     const symbols = STOCK_UNIVERSE.map((s) => yfSymbol(s.symbol));
@@ -354,8 +346,6 @@ router.get("/stocks", async (_req, res) => {
   }
 });
 
-// GET /api/stock/:symbol — powers the stock detail page (opened whenever a
-// stock is clicked, from the All Stocks list, the dashboard, or watchlist).
 router.get("/stock/:symbol", async (req, res) => {
   const rawSymbol = req.params.symbol.toUpperCase();
   const symbol = yfSymbol(rawSymbol);

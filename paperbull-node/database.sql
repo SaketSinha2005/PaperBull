@@ -1,21 +1,3 @@
--- ============================================================
---  PaperBull — PostgreSQL Database Setup
---  Converted from MySQL to PostgreSQL
---
---  How to run:
---    psql -U postgres -f database.sql
---  Or connect to your DB first:
---    psql -U postgres -d paperbull -f database.sql
--- ============================================================
-
--- Create the database (run this separately as a superuser if needed)
--- CREATE DATABASE paperbull;
-
--- Connect to the database before running the rest:
--- \c paperbull
-
--- ─── Tables ───────────────────────────────────────────────────────────────────
-
 CREATE TABLE IF NOT EXISTS user_auth (
     id                SERIAL PRIMARY KEY,
     email             VARCHAR(255)    NOT NULL UNIQUE,
@@ -28,8 +10,6 @@ CREATE TABLE IF NOT EXISTS user_auth (
     created_at        TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
 );
 
--- Migration for pre-existing databases created before Google auth was added:
--- (safe to re-run; no-ops if already applied)
 ALTER TABLE user_auth ALTER COLUMN password_hash DROP NOT NULL;
 ALTER TABLE user_auth ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE;
 
