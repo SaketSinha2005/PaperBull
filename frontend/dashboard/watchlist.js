@@ -111,8 +111,40 @@
     return "₹" + Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  function sparkSvg(up) {
-    const points = up ? "2,24 30,16 60,18 98,4" : "2,6 30,16 60,12 98,26";
+  // Real intraday sparkline built from today's closes (sent by the backend
+  // as q.spark on /api/stocks — the same live series the Stocks page uses).
+  // Falls back to a deterministic squiggle only if live data hasn't come
+  // back yet (e.g. first paint, or the market-data backend is unreachable).
+  function sparkPoints(symbol, spark, up) {
+    const closes = Array.isArray(spark) ? spark.filter((c) => typeof c === "number") : [];
+    if (closes.length >= 2) {
+      const min = Math.min(...closes);
+      const max = Math.max(...closes);
+      const span = max - min || 1;
+      return closes
+        .map((c, i) => {
+          const x = (i / (closes.length - 1)) * 100;
+          const y = 28 - ((c - min) / span) * 26;
+          return `${x.toFixed(2)},${y.toFixed(1)}`;
+        })
+        .join(" ");
+    }
+
+    let seed = 0;
+    for (let i = 0; i < symbol.length; i++) seed = (seed * 17 + symbol.charCodeAt(i)) % 97;
+    const pts = [];
+    let v = 15;
+    for (let i = 0; i < 8; i++) {
+      seed = (seed * 53 + 7) % 97;
+      v += ((seed % 9) - (up ? 3 : 5)) * 0.8;
+      v = Math.max(2, Math.min(28, v));
+      pts.push(`${((i / 7) * 100).toFixed(2)},${(30 - v).toFixed(1)}`);
+    }
+    return pts.join(" ");
+  }
+
+  function sparkSvg(symbol, spark, up) {
+    const points = sparkPoints(symbol, spark, up);
     return `<svg class="spark ${up ? "spark-up" : "spark-down"}" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="${points}" /></svg>`;
   }
 
@@ -202,9 +234,10 @@
         const change = q ? q.change : null;
         const changePct = q ? q.changePct : null;
         const up = q ? q.is_up : true;
+        const spark = q ? q.spark : null;
         const sign = change != null && change >= 0 ? "+" : "";
 
-        return { symbol, name, price, change, changePct, up, sign };
+        return { symbol, name, price, change, changePct, up, spark, sign };
       })
       .filter((r) => !filterQuery || r.symbol.toLowerCase().includes(filterQuery) || r.name.toLowerCase().includes(filterQuery));
 
@@ -235,7 +268,7 @@
               </div>
             </div>
           </td>
-          <td class="col-w-trend">${sparkSvg(r.up)}</td>
+          <td class="col-w-trend">${sparkSvg(r.symbol, r.spark, r.up)}</td>
           <td class="col-w-price"><div class="w-price">${fmtPrice(r.price)}</div></td>
           <td class="col-w-change">
             <div class="w-change ${r.up ? "up" : "down"}">

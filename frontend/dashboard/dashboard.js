@@ -342,6 +342,47 @@ document.addEventListener('DOMContentLoaded', () => {
     savePendingOrders(getPendingOrders().filter((o) => o.id !== id));
   }
 
+  // ---------------- market hours ----------------
+  function getMarketStatus() {
+    if (window.PaperBullMarketHours) return window.PaperBullMarketHours.getMarketStatus();
+    return { isOpen: false, isWeekday: false, isPastSquareOff: false, dateKey: null, message: "Market status unavailable" };
+  }
+
+  // ---------------- intraday (MIS) bookkeeping ----------------
+  // Mirrors the same logic in orders.js — kept in sync with whatever
+  // currently-held shares were bought under "Intraday (MIS)" today, so
+  // checkIntradaySquareOff() knows exactly what to auto-sell before the
+  // trading day ends.
+  function ensureIntradayFresh(portfolio) {
+    const today = getMarketStatus().dateKey;
+    if (portfolio.intradayDate !== today) {
+      portfolio.intraday = {};
+      portfolio.intradayDate = today;
+    }
+    if (!portfolio.intraday || typeof portfolio.intraday !== 'object') portfolio.intraday = {};
+    return portfolio;
+  }
+
+  function applyIntradayBookkeeping(portfolio, order) {
+    ensureIntradayFresh(portfolio);
+    const bucket = portfolio.intraday;
+    if (order.side === 'buy') {
+      if (order.product === 'Intraday (MIS)') {
+        const cur = bucket[order.symbol] || { qty: 0, avgPrice: 0, name: order.name };
+        const newQty = cur.qty + order.qty;
+        const newAvg = (cur.avgPrice * cur.qty + order.price * order.qty) / newQty;
+        bucket[order.symbol] = { qty: newQty, avgPrice: Math.round(newAvg * 100) / 100, name: order.name };
+      }
+    } else {
+      const cur = bucket[order.symbol];
+      if (cur && cur.qty > 0) {
+        const remaining = cur.qty - Math.min(cur.qty, order.qty);
+        if (remaining <= 0) delete bucket[order.symbol];
+        else bucket[order.symbol] = Object.assign({}, cur, { qty: remaining });
+      }
+    }
+  }
+
   function executeOrder(order, execPrice) {
     const portfolio = getPortfolio();
     const qty = order.qty;
@@ -381,12 +422,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (executed) {
+      applyIntradayBookkeeping(portfolio, { symbol: order.symbol, name: order.name, side: order.side, qty, price: execPrice, product: order.product });
       savePortfolio(portfolio);
       logOrder({
         symbol: order.symbol,
         name: order.name,
         side: order.side,
-        orderType: 'Trigger Price',
+        orderType: order.orderType || 'Trigger Price',
         product: order.product,
         qty,
         price: execPrice,
@@ -398,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
         symbol: order.symbol,
         name: order.name,
         side: order.side,
-        orderType: 'Trigger Price',
+        orderType: order.orderType || 'Trigger Price',
         product: order.product,
         qty,
         price: execPrice,
@@ -435,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (checking) return;
     const pending = getPendingOrders();
     if (!pending.length) return;
+    if (!getMarketStatus().isOpen) return; // trigger orders only fire during market hours
     checking = true;
 
     try {
@@ -480,19 +523,94 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ---------------- intraday (MIS) auto square-off ----------------
+  // Real brokers force-close any Intraday/MIS position that's still open
+  // a few minutes before the market shuts for the day. We mirror that
+  // here: once we're inside that window, sell off whatever's left in
+  // portfolio.intraday at the live market price, exactly once per
+  // trading day.
+  const SQUAREOFF_DONE_KEY = 'paperbull_squareoff_done_date';
+  let squaringOff = false;
+
+  function getSquareOffDoneDate() {
+    try { return localStorage.getItem(SQUAREOFF_DONE_KEY); } catch (err) { return null; }
+  }
+
+  function setSquareOffDoneDate(dateKey) {
+    try { localStorage.setItem(SQUAREOFF_DONE_KEY, dateKey); } catch (err) {}
+  }
+
+  async function checkIntradaySquareOff() {
+    if (squaringOff) return;
+    const status = getMarketStatus();
+    if (!status.isWeekday || !status.dateKey) return;
+    if (status.minutesNow < status.squareOffMin) return; // not time yet
+    if (getSquareOffDoneDate() === status.dateKey) return; // already handled today
+
+    const portfolio = getPortfolio();
+    ensureIntradayFresh(portfolio);
+    const symbols = Object.keys(portfolio.intraday).filter((sym) => portfolio.intraday[sym].qty > 0);
+
+    if (!symbols.length) {
+      setSquareOffDoneDate(status.dateKey);
+      return;
+    }
+
+    squaringOff = true;
+    try {
+      for (const symbol of symbols) {
+        const pos = portfolio.intraday[symbol];
+        let price = null;
+        try {
+          const res = await fetch(`${MARKET_API_BASE}/api/stock/${encodeURIComponent(symbol)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && !data.error) price = Number(data.price);
+          }
+        } catch (err) {}
+
+        if (price == null || Number.isNaN(price)) continue; // retry this symbol next tick
+
+        const { executed } = executeOrder(
+          { symbol, name: pos.name, side: 'sell', qty: pos.qty, product: 'Intraday (MIS)', orderType: 'Auto Square-Off (Intraday)' },
+          price
+        );
+
+        if (executed) {
+          showGlobalToast(`Intraday auto square-off: sold ${pos.qty} share${pos.qty === 1 ? '' : 's'} of ${symbol} at ₹${price.toFixed(2)} before day end`);
+        }
+      }
+
+      const refreshed = getPortfolio();
+      ensureIntradayFresh(refreshed);
+      const stillOpen = Object.keys(refreshed.intraday).some((sym) => refreshed.intraday[sym].qty > 0);
+      if (!stillOpen) setSquareOffDoneDate(status.dateKey);
+    } finally {
+      squaringOff = false;
+    }
+  }
+
   window.PaperBullOrders = {
     getPendingOrders,
     addPendingOrder,
     cancelPendingOrder,
     checkPendingOrders,
+    checkIntradaySquareOff,
     syncOrderToBackend,
   };
 
   document.addEventListener('DOMContentLoaded', () => {
     checkPendingOrders();
-    setInterval(checkPendingOrders, CHECK_INTERVAL_MS);
+    checkIntradaySquareOff();
+    setInterval(() => {
+      checkPendingOrders();
+      checkIntradaySquareOff();
+    }, CHECK_INTERVAL_MS);
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) checkPendingOrders();
+      if (!document.hidden) {
+        checkPendingOrders();
+        checkIntradaySquareOff();
+      }
     });
   });
 })();

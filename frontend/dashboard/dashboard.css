@@ -1544,8 +1544,6 @@ table { width: 100%; border-collapse: collapse; }
   transform: translate(-50%, 0);
 }
 
-/* ─────────────────────────  Portfolio page  ───────────────────────── */
-
 .portfolio-header-card { padding: 26px;background:transparent;
 border:none;
 box-shadow:none; }
@@ -1691,9 +1689,7 @@ box-shadow:none; }
   .btn-add-portfolio { justify-content: center; }
   .portfolio-stats-grid { grid-template-columns: 1fr; }
 }
-/* ==========================
-   Portfolio Background
-========================== */
+
 .portfolio-bg{
     position: relative;
     min-height:100vh;
