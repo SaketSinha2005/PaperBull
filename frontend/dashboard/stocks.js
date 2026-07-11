@@ -1,4 +1,4 @@
-const { useState, useMemo, useEffect, Fragment } = React;
+const { useState, useMemo, useEffect, useRef, Fragment } = React;
 
 const Icon = ({ path, className }) => (
   <svg viewBox="0 0 24 24" fill="none" className={className}>
@@ -194,14 +194,6 @@ const ArrowLeftIcon = (p) => (
   />
 );
 
-const indices = [
-  { name: "NIFTY", value: "24,056.00", change: "+34.35", pct: "+0.14%", up: true },
-  { name: "SENSEX", value: "77,100.47", change: "+109.25", pct: "+0.14%", up: true },
-  { name: "BANKNIFTY", value: "58,177.05", change: "+26.70", pct: "+0.05%", up: true },
-  { name: "MIDCNIFTY", value: "14,434.55", change: "-81.85", pct: "-0.56%", up: false },
-  { name: "FINNIFTY", value: "26,770.55", change: "+34.15", pct: "+0.13%", up: true },
-];
-
 const navTabs = ["Dashboard", "Stocks", "Watchlist", "Orders", "Portfolio"];
 
 const stock = {
@@ -314,38 +306,213 @@ const initialSymbolFromQuery = new URLSearchParams(window.location.search).get("
   });
 })();
 
-const WATCHLIST_KEY = "paperbull_watchlist";
+// ---------------------------------------------------------------
+// Playlists (a.k.a. watchlists). This reads/writes the exact same
+// localStorage shape the Watchlist page uses ("paperbull_watchlists_v2":
+// { activeId, lists: [{ id, name, symbols: [] }] }) so a stock added or
+// removed here shows up there, and vice versa. We still migrate the old
+// single flat-list format ("paperbull_watchlist") the first time either
+// page runs on it.
+// ---------------------------------------------------------------
+const PLAYLISTS_KEY = "paperbull_watchlists_v2";
+const LEGACY_WATCHLIST_KEY = "paperbull_watchlist";
+const DEFAULT_SEED_SYMBOLS = ["RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK"];
 
-function getWatchlist() {
-  try {
-    const raw = localStorage.getItem(WATCHLIST_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (err) {
-    return [];
-  }
+function uidPlaylist() {
+  return "wl_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-function saveWatchlist(list) {
+function migrateLegacyWatchlist() {
+  let legacySymbols = [];
   try {
-    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
+    const raw = localStorage.getItem(LEGACY_WATCHLIST_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        legacySymbols = parsed.map((s) => (s && s.symbol ? String(s.symbol).toUpperCase() : null)).filter(Boolean);
+      }
+    }
+  } catch (err) {}
+
+  const list = {
+    id: uidPlaylist(),
+    name: "My Watchlist",
+    symbols: legacySymbols.length ? Array.from(new Set(legacySymbols)) : DEFAULT_SEED_SYMBOLS.slice(),
+  };
+  return { activeId: list.id, lists: [list] };
+}
+
+function loadPlaylistState() {
+  try {
+    const raw = localStorage.getItem(PLAYLISTS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.lists)) return parsed;
+    }
+  } catch (err) {}
+
+  const migrated = migrateLegacyWatchlist();
+  savePlaylistState(migrated);
+  return migrated;
+}
+
+function savePlaylistState(state) {
+  try {
+    localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(state));
   } catch (err) {}
 }
 
-function isInWatchlist(symbol) {
-  return getWatchlist().some((s) => s.symbol === symbol);
+function getPlaylists() {
+  return loadPlaylistState().lists;
 }
 
-function toggleWatchlist(entry) {
-  const list = getWatchlist();
-  const idx = list.findIndex((s) => s.symbol === entry.symbol);
-  if (idx >= 0) {
-    list.splice(idx, 1);
-    saveWatchlist(list);
-    return false;
+function isInWatchlist(symbol) {
+  return getPlaylists().some((l) => l.symbols.includes(symbol));
+}
+
+function createPlaylist(name) {
+  const trimmed = String(name || "").trim();
+  if (!trimmed) return null;
+  const state = loadPlaylistState();
+  const list = { id: uidPlaylist(), name: trimmed.slice(0, 40), symbols: [] };
+  state.lists.push(list);
+  state.activeId = list.id;
+  savePlaylistState(state);
+  return list;
+}
+
+function addSymbolToPlaylist(playlistId, symbol) {
+  const state = loadPlaylistState();
+  const list = state.lists.find((l) => l.id === playlistId);
+  if (!list) return false;
+  const sym = String(symbol).toUpperCase();
+  if (!list.symbols.includes(sym)) {
+    list.symbols.push(sym);
+    savePlaylistState(state);
   }
-  list.push(entry);
-  saveWatchlist(list);
   return true;
+}
+
+function removeSymbolFromPlaylist(playlistId, symbol) {
+  const state = loadPlaylistState();
+  const list = state.lists.find((l) => l.id === playlistId);
+  if (!list) return false;
+  list.symbols = list.symbols.filter((s) => s !== symbol);
+  savePlaylistState(state);
+  return true;
+}
+
+function showToast(text) {
+  let toast = document.getElementById("pbToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "pbToast";
+    toast.className = "pb-toast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = text;
+  toast.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
+// Popup shown whenever the user hits the +/tick add-to-watchlist button
+// anywhere on the Stocks pages, so they can pick which playlist to file
+// the stock under (or create a new one on the spot).
+function PlaylistPickerModal({ symbol, name, onClose, onChange }) {
+  const [playlists, setPlaylists] = useState(() => getPlaylists());
+  const [newName, setNewName] = useState("");
+  const [error, setError] = useState("");
+
+  const refresh = () => {
+    setPlaylists(getPlaylists());
+    if (onChange) onChange(isInWatchlist(symbol));
+  };
+
+  const handleToggle = (playlist) => {
+    const has = playlist.symbols.includes(symbol);
+    if (has) {
+      removeSymbolFromPlaylist(playlist.id, symbol);
+      showToast(`Removed ${symbol} from ${playlist.name}`);
+    } else {
+      addSymbolToPlaylist(playlist.id, symbol);
+      showToast(`Added ${symbol} to ${playlist.name}`);
+    }
+    refresh();
+  };
+
+  const handleCreate = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) {
+      setError("Please enter a name for your playlist.");
+      return;
+    }
+    const list = createPlaylist(trimmed);
+    if (list) {
+      addSymbolToPlaylist(list.id, symbol);
+      setNewName("");
+      setError("");
+      showToast(`Created "${list.name}" and added ${symbol}`);
+      refresh();
+    }
+  };
+
+  return ReactDOM.createPortal(
+    <div
+      className="wl-modal-overlay open"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="wl-modal playlist-picker-modal">
+        <div className="wl-modal-head">
+          <h3>Add to playlist</h3>
+          <button className="wl-modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="wl-modal-sub">Choose a watchlist for {name || symbol}.</div>
+
+        <div className="playlist-picker-list">
+          {playlists.length === 0 && (
+            <div className="playlist-picker-empty">You don't have any playlists yet. Create one below.</div>
+          )}
+          {playlists.map((p) => {
+            const has = p.symbols.includes(symbol);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className={`playlist-picker-item${has ? " added" : ""}`}
+                onClick={() => handleToggle(p)}
+              >
+                <span className="playlist-picker-item-name">{p.name}</span>
+                <span className="playlist-picker-item-count">{p.symbols.length} stock{p.symbols.length === 1 ? "" : "s"}</span>
+                <span className="playlist-picker-item-check">
+                  {has ? <CheckIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="playlist-picker-create">
+          <input
+            type="text"
+            placeholder="New playlist name"
+            value={newName}
+            maxLength={40}
+            className="wl-modal-input"
+            onChange={(e) => { setNewName(e.target.value); setError(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
+          />
+          <button type="button" className="playlist-picker-create-btn" onClick={handleCreate}>+ Create</button>
+        </div>
+        {error && <div className="wl-modal-error">{error}</div>}
+
+        <div className="wl-modal-actions">
+          <button className="wl-modal-cancel" onClick={onClose} style={{ flex: "none", width: "100%" }}>Done</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 const stockTabs = ["Overview", "Technicals", "News", "Events", "F&O"];
@@ -433,7 +600,7 @@ const aiSuggestions = [
 const SECTOR_OPTIONS = [
   "Agriculture", "Banking", "Construction Materials", "Consumer Durables", "Diversified",
   "Energy", "FMCG", "Financial", "Healthcare", "Infrastructure", "IT - Services",
-  "Metals & Mining", "Telecom", "Automobile & Ancillaries",
+  "Metals & Mining", "Telecom", "Automobile & Ancillaries", "Other",
 ];
 
 const INDEX_OPTIONS = [
@@ -587,13 +754,49 @@ function TopNav({ active, onChange }) {
 }
 
 function IndicesTicker() {
+  const [indices, setIndices] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = () => {
+      fetch(`${STOCKS_API_BASE}/api/header-indices`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (cancelled) return;
+          if (Array.isArray(data) && data.length) setIndices(data);
+        })
+        .catch(() => {});
+    };
+
+    load();
+
+    // Keep the index strip ticking on its own instead of only ever
+    // fetching once, mirroring the live refresh used elsewhere on this page.
+    const LIVE_REFRESH_MS = 5000;
+    const timer = setInterval(() => {
+      if (!document.hidden) load();
+    }, LIVE_REFRESH_MS);
+
+    const onVisibility = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
   return (
     <div className="ticker-strip">
       <div className="ticker-left">
         {indices.map((i) => (
           <span key={i.name} className="ticker-item">
             <span className="ticker-name">{i.name}</span> <span className="ticker-val">{i.value}</span>{" "}
-            <span className={i.up ? "up" : "down"}>{i.change} ({i.pct.replace("+", "").replace("-", "")})</span>
+            <span className={i.is_up ? "up" : "down"}>{i.change} ({i.pct})</span>
           </span>
         ))}
       </div>
@@ -611,20 +814,23 @@ function StatBlock({ label, value }) {
   );
 }
 
+function useMarketStatus() {
+  const getStatus = () =>
+    window.PaperBullMarketHours ? window.PaperBullMarketHours.getMarketStatus() : { isOpen: false, message: "Market status unavailable" };
+  const [status, setStatus] = useState(getStatus);
+
+  useEffect(() => {
+    const t = setInterval(() => setStatus(getStatus()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  return status;
+}
+
 function StockHeader() {
   const [added, setAdded] = useState(() => isInWatchlist(stock.symbol));
-
-  const handleToggleWatchlist = () => {
-    const nowAdded = toggleWatchlist({
-      symbol: stock.symbol,
-      name: stock.name,
-      price: stock.price,
-      change: stock.change,
-      pct: stock.pct,
-      up: stock.up,
-    });
-    setAdded(nowAdded);
-  };
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const marketStatus = useMarketStatus();
 
   return (
     <div className="card">
@@ -640,21 +846,26 @@ function StockHeader() {
               <span className="px-2 py-0.5 rounded-md bg-[var(--bg-pill)] text-[var(--text-secondary)] font-medium">{stock.exchange}</span>
               <span className="px-2 py-0.5 rounded-md bg-[var(--bg-pill)] text-[var(--text-secondary)] font-medium">{stock.cap}</span>
               <span className="px-2 py-0.5 rounded-md bg-[var(--bg-pill)] text-[var(--text-secondary)] font-medium">{stock.sector}</span>
+              <span className={`px-2 py-0.5 rounded-md font-medium ${marketStatus.isOpen ? "bg-[var(--green)]/10 text-[var(--green)]" : "bg-[var(--red)]/10 text-[var(--red)]"}`}>
+                {marketStatus.isOpen ? "Market Open" : "Market Closed"}
+              </span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={handleToggleWatchlist}
+            onClick={() => setPickerOpen(true)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-medium ${added ? "bg-[var(--green)]/10 border-[var(--green)]/40 text-[var(--green)]" : "bg-[var(--bg-card-alt)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-pill)]"}`}
           >
             {added ? <CheckIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />} {added ? "In Watchlist" : "Watchlist"}
           </button>
           <a
             href={`orders.html?symbol=${encodeURIComponent(stock.symbol)}&side=buy`}
-            className="px-5 py-2 rounded-lg text-sm font-semibold bg-[var(--green)] text-[#06211f] hover:brightness-110 transition-all"
+            onClick={(e) => { if (!marketStatus.isOpen) e.preventDefault(); }}
+            title={marketStatus.isOpen ? "" : marketStatus.message}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${marketStatus.isOpen ? "bg-[var(--green)] text-[#06211f] hover:brightness-110" : "bg-[var(--bg-pill)] text-[var(--text-secondary)] cursor-not-allowed"}`}
           >
-            Buy
+            {marketStatus.isOpen ? "Buy" : "Market Closed"}
           </a>
         </div>
       </div>
@@ -679,6 +890,15 @@ function StockHeader() {
           <StatBlock label="52 week high" value={stock.weekHigh} />
         </div>
       </div>
+
+      {pickerOpen && (
+        <PlaylistPickerModal
+          symbol={stock.symbol}
+          name={stock.name}
+          onClose={() => setPickerOpen(false)}
+          onChange={setAdded}
+        />
+      )}
     </div>
   );
 }
@@ -1287,17 +1507,6 @@ function AIAssistant() {
   );
 }
 
-// PaperBull executes paper trades at a tiny, deterministic spread off the
-// live market price so "Our Price" never has to hit a second data source.
-function getOurPrice(symbol, price) {
-  if (price == null) return null;
-  let hash = 0;
-  for (let i = 0; i < symbol.length; i++) hash = (hash * 31 + symbol.charCodeAt(i)) >>> 0;
-  const spreadPct = 0.1 + (hash % 90) / 100; // 0.10% – 0.99%
-  const sign = hash % 2 === 0 ? -1 : 1;
-  return Math.max(0, price * (1 + (sign * spreadPct) / 100));
-}
-
 function formatINR(n, decimals = 2) {
   if (n == null || Number.isNaN(n)) return "—";
   return Number(n).toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -1454,17 +1663,79 @@ function FiltersPanel({ filters, setFilters, onClearAll }) {
   );
 }
 
+// Module-level cache so a row's real chart, once fetched via /api/series,
+// survives re-renders/re-mounts (filtering, re-sorting, navigating back from
+// a stock's detail page) instead of re-fetching every time.
+const rowSeriesCache = new Map(); // symbol -> number[] of closes
+
 function StockListRow({ item, onSelect }) {
   const [added, setAdded] = useState(() => isInWatchlist(item.symbol));
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [rowSeries, setRowSeries] = useState(() => rowSeriesCache.get(item.symbol) || null);
+  const rowRef = useRef(null);
   const up = item.is_up;
-  const ourPrice = getOurPrice(item.symbol, item.price);
   const initial = (item.symbol || item.name || "?").trim().charAt(0).toUpperCase();
 
-  // Real intraday sparkline from today's closes (sent by the backend as
-  // item.spark). Falls back to the old deterministic squiggle only if live
-  // data hasn't come back yet (e.g. first paint, or the API call failed).
+  // Pull the row's chart from the exact same endpoint (`/api/series/:symbol`)
+  // that already renders correctly on the stock detail page, instead of
+  // depending on the bulk /api/stocks snapshot's `spark` field (which needs
+  // the whole-universe quote batch to succeed for this symbol). Fetches only
+  // once the row actually scrolls into view — with 2000+ rows in the table,
+  // firing off a request for every row on mount would hammer the backend —
+  // and keeps it refreshing every 15s while visible so it stays live.
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+
+    let cancelled = false;
+    let timer = null;
+
+    const load = () => {
+      fetch(`${STOCKS_API_BASE}/api/series/${encodeURIComponent(item.symbol)}?range=1D`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (cancelled) return;
+          if (Array.isArray(data.points) && data.points.length >= 2) {
+            const closes = data.points.map((p) => p.close).filter((c) => typeof c === "number");
+            if (closes.length >= 2) {
+              rowSeriesCache.set(item.symbol, closes);
+              setRowSeries(closes);
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries[0]?.isIntersecting;
+        if (visible) {
+          if (!rowSeriesCache.has(item.symbol)) load();
+          if (!timer) timer = setInterval(load, 15000);
+        } else if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      if (timer) clearInterval(timer);
+    };
+  }, [item.symbol]);
+
+  // Prefer the row's real chart from /api/series (rowSeries). Fall back to
+  // whatever the bulk snapshot sent (item.spark) if that hasn't loaded yet,
+  // and only fall back to a deterministic placeholder squiggle if neither
+  // has real data (e.g. first paint before the row has scrolled into view).
   const sparkPoints = useMemo(() => {
-    const closes = Array.isArray(item.spark) ? item.spark.filter((c) => typeof c === "number") : [];
+    const closes = Array.isArray(rowSeries) && rowSeries.length >= 2
+      ? rowSeries
+      : (Array.isArray(item.spark) ? item.spark.filter((c) => typeof c === "number") : []);
     if (closes.length >= 2) {
       const min = Math.min(...closes);
       const max = Math.max(...closes);
@@ -1489,23 +1760,15 @@ function StockListRow({ item, onSelect }) {
       pts.push(`${(i / 7) * 100},${(24 - v).toFixed(1)}`);
     }
     return pts.join(" ");
-  }, [item.symbol, item.spark, up]);
+  }, [item.symbol, item.spark, rowSeries, up]);
 
   const handleAdd = (e) => {
     e.stopPropagation();
-    const nowAdded = toggleWatchlist({
-      symbol: item.symbol,
-      name: item.name,
-      price: item.price,
-      change: item.change,
-      pct: `(${Math.abs(item.changePct).toFixed(2)}%)`,
-      up,
-    });
-    setAdded(nowAdded);
+    setPickerOpen(true);
   };
 
   return (
-    <tr onClick={() => onSelect(item)}>
+    <tr ref={rowRef} onClick={() => onSelect(item)}>
       <td>
         <div className="stock-row-company">
           <div className="stock-row-logo">{initial}</div>
@@ -1527,15 +1790,20 @@ function StockListRow({ item, onSelect }) {
         </div>
       </td>
       <td className="num">
-        <div className="stock-row-price tnum">₹{formatINR(ourPrice)}</div>
-      </td>
-      <td className="num">
         <div className="stock-row-mcap tnum">{item.marketCapCr != null ? `₹${Number(item.marketCapCr).toLocaleString("en-IN")}` : "—"}</div>
       </td>
       <td>
         <button className={`stock-row-add${added ? " added" : ""}`} onClick={handleAdd} title={added ? "In watchlist" : "Add to watchlist"}>
           {added ? <CheckIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />}
         </button>
+        {pickerOpen && (
+          <PlaylistPickerModal
+            symbol={item.symbol}
+            name={item.name}
+            onClose={() => setPickerOpen(false)}
+            onChange={setAdded}
+          />
+        )}
       </td>
     </tr>
   );
@@ -1649,7 +1917,7 @@ function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
         <div className="all-stocks-layout">
           <FiltersPanel filters={filters} setFilters={setFilters} onClearAll={clearAll} />
 
-          <div>
+          <div className="stocks-list-col">
             <div className="stocks-toolbar">
               <div className="stocks-search-box">
                 <SearchIcon />
@@ -1693,7 +1961,6 @@ function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
                       <th>Company</th>
                       <th></th>
                       <th className="num">Market Price</th>
-                      <th className="num">Our Price</th>
                       <th className="num">Market Cap (Cr)</th>
                       <th></th>
                     </tr>
