@@ -217,15 +217,21 @@
     }
 
     body.innerHTML = rows
-      .map(
-        (r) => `
+      .map((r) => {
+        // When live quote data hasn't loaded yet (or the market-data backend
+        // is unreachable), `name` falls back to the raw symbol — rendering
+        // both lines in that case would show the same text twice (e.g.
+        // "RELIANCE" / "RELIANCE"). Only show the symbol sub-line once it's
+        // actually distinct from the display name.
+        const showSymbolLine = r.name && r.name.toUpperCase() !== r.symbol.toUpperCase();
+        return `
         <tr class="watchlist-row-user" data-symbol="${r.symbol}">
           <td class="col-w-company">
             <div class="row-co">
               <div class="w-logo">${initials(r.name).charAt(0)}</div>
               <div>
                 <div class="h-name">${escapeHtml(r.name)}</div>
-                <div class="h-symbol">${r.symbol}</div>
+                ${showSymbolLine ? `<div class="h-symbol">${r.symbol}</div>` : ""}
               </div>
             </div>
           </td>
@@ -242,8 +248,8 @@
               <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </button>
           </td>
-        </tr>`
-      )
+        </tr>`;
+      })
       .join("");
 
     body.querySelectorAll(".watchlist-row-user").forEach((row) => {

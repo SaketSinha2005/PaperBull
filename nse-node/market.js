@@ -221,7 +221,7 @@ router.get("/series/:symbol", async (req, res) => {
 router.get("/live-indices", async (_req, res) => {
   const results = [];
 
-  for (const [symbol, name] of Object.entries(TICKERS)) {
+  for (const [symbol, indexInfo] of Object.entries(INDICES)) {
     try {
       const { meta } = await fetchHistory(symbol, 1);
 
@@ -234,7 +234,7 @@ router.get("/live-indices", async (_req, res) => {
       const sign      = changePct >= 0 ? "+" : "";
 
       results.push({
-        sym:   name,
+        sym:   indexInfo.display,
         price: Math.round(current * 100) / 100,
         chg:   `${sign}${changePct.toFixed(2)}%`,
         is_up: changePct >= 0,

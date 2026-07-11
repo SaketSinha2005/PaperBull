@@ -144,13 +144,14 @@
         .then(function (result) {
           setSubmitting(signupForm, false);
           if (!result.ok) {
-            if (signupError) signupError.textContent = result.data.error || 'Signup failed.';
+            if (signupError) signupError.textContent = result.data.message || result.data.error || 'Signup failed.';
             return;
           }
+          var newUser = (result.data && result.data.user) || {};
           saveSessionUser({
-            display_name: displayName,
-            email: email,
-            virtual_balance: 100000
+            display_name: newUser.fullName || displayName,
+            email: newUser.email || email,
+            virtual_balance: typeof newUser.balance === 'number' ? newUser.balance : 100000
           });
           window.location.href = '/dashboard/index.html';
         })
@@ -186,7 +187,7 @@
         .then(function (result) {
           setSubmitting(loginForm, false);
           if (!result.ok) {
-            if (loginError) loginError.textContent = result.data.error || 'Login failed.';
+            if (loginError) loginError.textContent = result.data.message || result.data.error || 'Login failed.';
             return;
           }
           saveSessionUser(result.data.user);

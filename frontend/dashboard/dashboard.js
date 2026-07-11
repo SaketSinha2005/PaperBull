@@ -260,12 +260,38 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 (function () {
   const MARKET_API_BASE = 'http://localhost:5000';
+  const PORTFOLIO_API_BASE = 'http://localhost:8000';
   const PORTFOLIO_KEY = 'paperbull_portfolio';
   const USER_KEY = 'paperbull_user';
   const ORDERS_KEY = 'paperbull_orders';
   const PENDING_KEY = 'paperbull_pending_orders';
   const DEFAULT_STARTING_CAPITAL = 100000;
   const CHECK_INTERVAL_MS = 5000;
+
+  // Fire-and-forget: persist an executed buy/sell to the paperbull-node
+  // backend (Postgres) so it survives across devices/sessions. Silently
+  // no-ops for guest sessions (no email) or when the backend is offline —
+  // the localStorage ledger remains the source of truth for the UI either way.
+  function syncOrderToBackend(order) {
+    try {
+      const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
+      if (!user.email) return;
+      fetch(`${PORTFOLIO_API_BASE}/api/portfolio/order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          symbol: order.symbol,
+          name: order.name,
+          side: order.side,
+          qty: order.qty,
+          price: order.price,
+          orderType: order.orderType || 'Market',
+          product: order.product || 'Delivery',
+        }),
+      }).catch(() => {});
+    } catch (err) {}
+  }
 
   function getPortfolio() {
     let portfolio = {};
@@ -383,6 +409,15 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerPrice: order.triggerPrice,
         timestamp: new Date().toISOString(),
       });
+      syncOrderToBackend({
+        symbol: order.symbol,
+        name: order.name,
+        side: order.side,
+        orderType: 'Trigger Price',
+        product: order.product,
+        qty,
+        price: execPrice,
+      });
       if (typeof renderProfileDropdown === 'function') renderProfileDropdown();
     }
 
@@ -465,6 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addPendingOrder,
     cancelPendingOrder,
     checkPendingOrders,
+    syncOrderToBackend,
   };
 
   document.addEventListener('DOMContentLoaded', () => {

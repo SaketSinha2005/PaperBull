@@ -1,30 +1,42 @@
 /* ============================================================
    PaperBull — Portfolio page: Holdings + Recent Buy/Sell Activity
-   Reads the same localStorage ledger orders.js writes to
-   ("paperbull_portfolio" for open positions, "paperbull_orders" for
-   the buy/sell log) and enriches it with live prices from the
-   nse-node market-data backend, refreshed on an interval so the
-   page keeps itself up to date.
+
+   Data source: the paperbull-node backend (Postgres) when the user is
+   logged in — GET /api/portfolio/:email returns their persisted
+   holdings + order history. If that's unavailable (backend not
+   running, or a guest session with no email) we fall back to the
+   same localStorage ledger orders.js writes to, so the page keeps
+   working offline. Either way, live LTP/day-change comes from the
+   nse-node market-data backend on a refresh interval.
    ============================================================ */
 
 (function () {
+  const PORTFOLIO_API_BASE = "http://localhost:8000";
   const MARKET_API_BASE = "http://localhost:5000";
   const PORTFOLIO_KEY = "paperbull_portfolio";
-  const ORDERS_KEY = "paperbull_orders";
+  const USER_KEY = "paperbull_user";
   const LIVE_REFRESH_MS = 10000;
 
   const $ = (id) => document.getElementById(id);
 
   const fmtINR = (n, decimals = 2) =>
-    "₹" + Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    "₹" + Math.abs(n || 0).toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
   const initials = (name) => {
     if (!name) return "?";
-    const parts = String(name).trim().split(/\s+/);
-    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+    return String(name).trim().charAt(0).toUpperCase();
   };
 
-  function getHoldings() {
+  function getEmail() {
+    try {
+      const user = JSON.parse(localStorage.getItem(USER_KEY) || "{}");
+      return user.email || null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function getLocalHoldings() {
     try {
       const portfolio = JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || "{}");
       return portfolio.holdings && typeof portfolio.holdings === "object" ? portfolio.holdings : {};
@@ -33,12 +45,32 @@
     }
   }
 
-  function getOrders() {
+  // Normalizes backend holdings (array of {symbol,name,qty,avgPrice}) into
+  // the same {symbol: {qty,avgPrice,name}} shape the local ledger uses.
+  function holdingsArrayToMap(list) {
+    const map = {};
+    (list || []).forEach((h) => {
+      map[h.symbol] = { qty: h.qty, avgPrice: h.avgPrice, name: h.name };
+    });
+    return map;
+  }
+
+  // Fetch persisted holdings + order history from the backend. Returns
+  // null (rather than throwing) when the backend can't be reached, so the
+  // caller can fall back to the local ledger.
+  async function fetchBackendPortfolio(email) {
     try {
-      const orders = JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
-      return Array.isArray(orders) ? orders : [];
+      const res = await fetch(`${PORTFOLIO_API_BASE}/api/portfolio/${encodeURIComponent(email)}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || !data.success) return null;
+      return {
+        holdings: holdingsArrayToMap(data.holdings),
+        orders: data.orders || [],
+      };
     } catch (err) {
-      return [];
+      console.warn("Portfolio: backend unreachable, falling back to local data.", err);
+      return null;
     }
   }
 
@@ -68,122 +100,125 @@
     const card = $("holdingsCard");
     const body = $("holdingsBody");
     const countEl = $("holdingsCount");
-    if (!card || !body) return;
+    if (!card || !body) return { currentValue: 0, investedValue: 0, overallGain: 0, todayGain: 0 };
 
     const symbols = Object.keys(holdings);
     if (!symbols.length) {
       card.hidden = true;
-      return;
+      return { currentValue: 0, investedValue: 0, overallGain: 0, todayGain: 0 };
     }
 
     card.hidden = false;
     countEl.textContent = `${symbols.length} stock${symbols.length === 1 ? "" : "s"}`;
+
+    let currentValue = 0;
+    let investedValue = 0;
+    let todayGain = 0;
 
     body.innerHTML = symbols
       .map((symbol) => {
         const h = holdings[symbol];
         const live = liveQuotes[symbol];
         const ltp = live ? Number(live.price) : h.avgPrice;
-        const investedVal = h.qty * h.avgPrice;
+        const invested = h.qty * h.avgPrice;
         const curVal = h.qty * ltp;
-        const pl = curVal - investedVal;
-        const plPct = investedVal ? (pl / investedVal) * 100 : 0;
-        const plUp = pl >= 0;
-        const dayUp = live ? live.change >= 0 : true;
-        const dayChangeText = live ? `${live.change >= 0 ? "+" : ""}${live.change} (${live.changePct >= 0 ? "+" : ""}${live.changePct}%)` : "—";
+        const gain = curVal - invested;
+        const gainPct = invested ? (gain / invested) * 100 : 0;
+        const gainUp = gain >= 0;
+
+        const dayChangeAmt = live ? Number(live.change) * h.qty : 0;
+        const dayChangePct = live ? Number(live.changePct) : 0;
+        const dayUp = dayChangeAmt >= 0;
+
+        currentValue += curVal;
+        investedValue += invested;
+        todayGain += dayChangeAmt;
 
         return `
-        <tr class="holdings-row" data-symbol="${symbol}">
-          <td class="col-h-company">
-            <div class="row-co">
-              <div class="w-logo">${initials(h.name || symbol).charAt(0)}</div>
-              <div>
-                <div class="h-name">${h.name || symbol}</div>
-                <div class="h-symbol">${symbol} · Day ${live ? `<span class="${dayUp ? "up" : "down"}">${dayChangeText}</span>` : dayChangeText}</div>
-              </div>
+        <div class="holding-row" data-symbol="${symbol}">
+          <div class="holding-row-left">
+            <div class="w-logo">${initials(h.name || symbol)}</div>
+            <div>
+              <div class="holding-name">${symbol}</div>
+              <div class="holding-meta">${h.qty} x Avg ${fmtINR(h.avgPrice)}</div>
             </div>
-          </td>
-          <td class="col-h-qty">${h.qty}</td>
-          <td class="col-h-avg">${fmtINR(h.avgPrice)}</td>
-          <td class="col-h-ltp">${fmtINR(ltp)}</td>
-          <td class="col-h-invested">${fmtINR(investedVal)}</td>
-          <td class="col-h-value">${fmtINR(curVal)}</td>
-          <td class="col-h-pl">
-            <div class="h-pl ${plUp ? "up" : "down"}">${plUp ? "+" : "-"}${fmtINR(pl)}</div>
-            <div class="h-pl-pct ${plUp ? "up" : "down"}">${plUp ? "+" : "-"}${Math.abs(plPct).toFixed(2)}%</div>
-          </td>
-        </tr>`;
+          </div>
+          <div class="holding-row-gain">
+            <div class="holding-col-label">Overall Gain</div>
+            <div class="holding-gain-amt ${gainUp ? "up" : "down"}">${gainUp ? "" : "-"}${fmtINR(gain)} (${gainUp ? "+" : "-"}${Math.abs(gainPct).toFixed(2)}%)</div>
+          </div>
+          <div class="holding-row-daychange">
+            <div class="holding-col-label">Day Change</div>
+            <div class="holding-daychange-amt ${live ? (dayUp ? "up" : "down") : ""}">${live ? `${dayUp ? "" : "-"}${fmtINR(dayChangeAmt)} (${dayUp ? "+" : "-"}${Math.abs(dayChangePct).toFixed(2)}%)` : "—"}</div>
+          </div>
+          <div class="holding-row-ltp">
+            <div class="holding-col-label">LTP</div>
+            <div class="holding-ltp-val">${fmtINR(ltp)}</div>
+          </div>
+        </div>`;
       })
       .join("");
 
-    body.querySelectorAll(".holdings-row").forEach((row) => {
+    body.querySelectorAll(".holding-row").forEach((row) => {
       row.addEventListener("click", () => {
         window.location.href = `stocks.html?symbol=${encodeURIComponent(row.getAttribute("data-symbol"))}`;
       });
     });
+
+    const overallGain = currentValue - investedValue;
+    return { currentValue, investedValue, overallGain, todayGain };
   }
 
-  function renderTransactions(orders) {
-    const card = $("transactionsCard");
-    const body = $("transactionsBody");
-    const countEl = $("transactionsCount");
-    if (!card || !body) return;
+  function renderHoldingsSummary({ currentValue, investedValue, overallGain, todayGain }) {
+    const currentEl = $("holdingsCurrentValue");
+    const gainEl = $("holdingsOverallGain");
+    const investedEl = $("holdingsInvestedValue");
+    const todayEl = $("holdingsTodayGain");
+    if (!currentEl) return;
 
-    if (!orders.length) {
-      card.hidden = true;
-      return;
-    }
+    const overallPct = investedValue ? (overallGain / investedValue) * 100 : 0;
+    const openingValue = currentValue - todayGain;
+    const todayPct = openingValue ? (todayGain / openingValue) * 100 : 0;
+    const gainUp = overallGain >= 0;
+    const todayUp = todayGain >= 0;
 
-    card.hidden = false;
-    countEl.textContent = `${orders.length} order${orders.length === 1 ? "" : "s"}`;
+    currentEl.textContent = fmtINR(currentValue);
+    gainEl.classList.toggle("down", !gainUp);
+    gainEl.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Overall Gain ${gainUp ? "+" : "-"}${fmtINR(overallGain)} (${gainUp ? "+" : "-"}${Math.abs(overallPct).toFixed(2)}%)`;
 
-    body.innerHTML = orders
-      .slice(0, 25)
-      .map((o) => {
-        const isBuy = o.side === "buy";
-        const when = o.timestamp
-          ? new Date(o.timestamp).toLocaleString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            })
-          : "";
+    investedEl.textContent = fmtINR(investedValue);
 
-        return `
-        <div class="tx-row">
-          <div class="tx-side-badge ${isBuy ? "buy" : "sell"}">${isBuy ? "BUY" : "SELL"}</div>
-          <div class="tx-main">
-            <div class="tx-name">${o.name || o.symbol}</div>
-            <div class="tx-sub">${o.symbol} · ${o.orderType || "Market"} · ${o.product || "Delivery"}</div>
-          </div>
-          <div class="tx-qty">${o.qty} sh${o.qty === 1 ? "" : "s"} @ ${fmtINR(o.price)}</div>
-          <div class="tx-amount ${isBuy ? "down" : "up"}">${isBuy ? "-" : "+"}${fmtINR(o.amount)}</div>
-          <div class="tx-time">${when}</div>
-        </div>`;
-      })
-      .join("");
+    todayEl.textContent = `${todayUp ? "+" : "-"}${fmtINR(todayGain)} (${todayUp ? "+" : "-"}${Math.abs(todayPct).toFixed(2)}%)`;
+    todayEl.style.color = todayUp ? "var(--green)" : "var(--red)";
   }
 
-  function updateEmptyState(hasHoldings, hasOrders) {
+  function updateEmptyState(hasHoldings) {
     const emptyCard = $("portfolioEmptyCard");
     if (!emptyCard) return;
-    emptyCard.hidden = hasHoldings || hasOrders;
+    emptyCard.hidden = hasHoldings;
   }
 
   async function refresh() {
-    const holdings = getHoldings();
-    const orders = getOrders();
-    const symbols = Object.keys(holdings);
+    const email = getEmail();
+    let holdings = getLocalHoldings();
 
+    if (email) {
+      const backendData = await fetchBackendPortfolio(email);
+      if (backendData) {
+        holdings = backendData.holdings;
+      }
+    }
+
+    const symbols = Object.keys(holdings);
     if (symbols.length) {
       liveQuotes = await fetchLiveQuotes(symbols);
     }
 
-    renderHoldings(holdings);
-    renderTransactions(orders);
-    updateEmptyState(symbols.length > 0, orders.length > 0);
+    const summary = renderHoldings(holdings);
+    renderHoldingsSummary(summary);
+    updateEmptyState(symbols.length > 0);
   }
 
   function init() {
@@ -197,6 +232,13 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) refresh();
     });
+
+    const analyseBtn = $("analyseHoldingsBtn");
+    if (analyseBtn) {
+      analyseBtn.addEventListener("click", () => {
+        window.location.href = "stocks.html";
+      });
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);

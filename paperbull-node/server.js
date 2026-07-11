@@ -4,7 +4,8 @@ const express = require("express");
 const cors    = require("cors");
 const passport = require("./config/passport");
 
-const authRoutes   = require("./routes/auth");
+const authRoutes      = require("./routes/auth");
+const portfolioRoutes = require("./routes/portfolio");
 
 const app  = express();
 const PORT = process.env.PORT || 8000;
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use(passport.initialize());
 
 app.use("/api", authRoutes);
+app.use("/api/portfolio", portfolioRoutes);
 
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));

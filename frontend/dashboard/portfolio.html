@@ -123,32 +123,40 @@
     </section>
 
     <section class="card holdings-card" id="holdingsCard" hidden>
-      <div class="card-header">
+      <div class="holdings-topbar">
+        <div class="holdings-topbar-value">
+          <div class="holdings-topbar-current" id="holdingsCurrentValue">₹0.00</div>
+          <div class="holdings-topbar-gain" id="holdingsOverallGain">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Overall Gain ₹0.00 (0.00%)
+          </div>
+        </div>
+        <div class="holdings-topbar-stat">
+          <div class="holdings-topbar-label">Invested Value</div>
+          <div class="holdings-topbar-figure" id="holdingsInvestedValue">₹0.00</div>
+        </div>
+        <div class="holdings-topbar-stat">
+          <div class="holdings-topbar-label">Today's Gain</div>
+          <div class="holdings-topbar-figure" id="holdingsTodayGain">₹0.00 (0.00%)</div>
+        </div>
+        <div class="holdings-topbar-actions">
+          <button class="holdings-action-btn" id="analyseHoldingsBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Analyse
+          </button>
+          <button class="holdings-action-btn holdings-action-btn-outline" id="verifySellBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Verify to sell
+          </button>
+        </div>
+      </div>
+
+      <div class="card-header holdings-list-header">
         <h2>Your Holdings</h2>
         <span class="holdings-count" id="holdingsCount">0 stocks</span>
       </div>
-      <table class="holdings-table">
-        <thead>
-          <tr>
-            <th class="col-h-company">Company</th>
-            <th class="col-h-qty">Qty.</th>
-            <th class="col-h-avg">Avg. price</th>
-            <th class="col-h-ltp">LTP</th>
-            <th class="col-h-invested">Invested</th>
-            <th class="col-h-value">Cur. value</th>
-            <th class="col-h-pl">P&amp;L</th>
-          </tr>
-        </thead>
-        <tbody id="holdingsBody"></tbody>
-      </table>
-    </section>
 
-    <section class="card transactions-card" id="transactionsCard" hidden>
-      <div class="card-header">
-        <h2>Recent Buy / Sell Activity</h2>
-        <span class="transactions-count" id="transactionsCount">0 orders</span>
-      </div>
-      <div class="transactions-list" id="transactionsBody"></div>
+      <div class="holdings-list" id="holdingsBody"></div>
     </section>
 
     <section class="card portfolio-empty-card" id="portfolioEmptyCard">

@@ -678,6 +678,18 @@
       timestamp: new Date().toISOString(),
     });
 
+    if (window.PaperBullOrders && typeof window.PaperBullOrders.syncOrderToBackend === "function") {
+      window.PaperBullOrders.syncOrderToBackend({
+        symbol: s.symbol,
+        name: s.name,
+        side: currentSide,
+        orderType: currentOrderType,
+        product: currentProduct,
+        qty,
+        price,
+      });
+    }
+
     closeReviewModal();
     showToast(`${currentSide === "buy" ? "Buy" : "Sell"} order placed for ${qty} share${qty === 1 ? "" : "s"} of ${s.symbol}`);
     updateAvailability();
