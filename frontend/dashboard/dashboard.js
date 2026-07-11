@@ -247,17 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { passive: true });
 });
 
-// ============================================================
-// Trigger ("Trigger Price") pending-order engine
-// ------------------------------------------------------------
-// This used to live only inside orders.js, which only runs while the
-// user is actually on the Orders page — so a pending trigger order
-// only ever got checked (and only ever seemed to "appear" as executed)
-// when that page happened to be open. dashboard.js is loaded on every
-// dashboard page (index, watchlist, portfolio, orders), so putting the
-// engine here means a trigger order keeps getting checked consistently
-// no matter which page the user is on, instead of only sometimes.
-// ============================================================
 (function () {
   const MARKET_API_BASE = 'http://localhost:5000';
   const PORTFOLIO_API_BASE = 'http://localhost:8000';
@@ -268,10 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_STARTING_CAPITAL = 100000;
   const CHECK_INTERVAL_MS = 5000;
 
-  // Fire-and-forget: persist an executed buy/sell to the paperbull-node
-  // backend (Postgres) so it survives across devices/sessions. Silently
-  // no-ops for guest sessions (no email) or when the backend is offline —
-  // the localStorage ledger remains the source of truth for the UI either way.
   function syncOrderToBackend(order) {
     try {
       const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
@@ -521,14 +506,24 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log("1. Dashboard.js is loaded and running!");
 
   const moversTableBody = document.getElementById('movers-table-body');
-  const pills = document.querySelectorAll('.pill-tabs .pill');
+  const pills = document.querySelectorAll('.movers-bar .pill-tabs .pill');
   
   if (moversTableBody) {
     fetchTopMovers(moversTableBody, currentMoversEndpoint);
 
-    setInterval(() => {
-      fetchTopMovers(moversTableBody, currentMoversEndpoint);
-    }, 60000);
+    // Refresh every second. Guarded with isFetchingMovers so a slow
+    // request (NSE scrape + per-stock chart calls) can't overlap with
+    // the next tick and pile up requests.
+    let isFetchingMovers = false;
+    setInterval(async () => {
+      if (isFetchingMovers) return;
+      isFetchingMovers = true;
+      try {
+        await fetchTopMovers(moversTableBody, currentMoversEndpoint);
+      } finally {
+        isFetchingMovers = false;
+      }
+    }, 1000);
 
     pills.forEach((pill) => {
       pill.addEventListener('click', () => {
@@ -655,5 +650,97 @@ async function fetchTopMovers(container, endpoint = DASHBOARD_API_ENDPOINT) {
         </td>
       </tr>
     `;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const breakoutGrid = document.getElementById('breakout-cards-grid');
+  const highBtn = document.getElementById('breakout-high-btn');
+  const lowBtn = document.getElementById('breakout-low-btn');
+  
+  const DASHBOARD_API_BASE = 'http://localhost:5000';
+  
+  if (breakoutGrid) {
+    let currentBreakoutEndpoint = `${DASHBOARD_API_BASE}/api/52week-high`;
+
+    // Initial fetch
+    fetchBreakoutCards(currentBreakoutEndpoint);
+
+    // Toggle to Highs
+    highBtn?.addEventListener('click', () => {
+      highBtn.classList.add('active');
+      lowBtn?.classList.remove('active');
+      currentBreakoutEndpoint = `${DASHBOARD_API_BASE}/api/52week-high`;
+      breakoutGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px 0;">Loading high breakouts...</div>';
+      fetchBreakoutCards(currentBreakoutEndpoint);
+    });
+
+    // Toggle to Lows
+    lowBtn?.addEventListener('click', () => {
+      lowBtn.classList.add('active');
+      highBtn?.classList.remove('active');
+      currentBreakoutEndpoint = `${DASHBOARD_API_BASE}/api/52week-low`;
+      breakoutGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px 0;">Loading low breakouts...</div>';
+      fetchBreakoutCards(currentBreakoutEndpoint);
+    });
+
+    // Refresh every second, tracking whichever tab (high/low) is active.
+    // Guarded so a slow request can't overlap with the next tick.
+    let isFetchingBreakouts = false;
+    setInterval(async () => {
+      if (isFetchingBreakouts) return;
+      isFetchingBreakouts = true;
+      try {
+        await fetchBreakoutCards(currentBreakoutEndpoint);
+      } finally {
+        isFetchingBreakouts = false;
+      }
+    }, 1000);
+  }
+});
+
+async function fetchBreakoutCards(endpoint) {
+  const breakoutGrid = document.getElementById('breakout-cards-grid');
+  try {
+    const response = await fetch(endpoint);
+    const stocks = await response.json();
+    
+    if (!Array.isArray(stocks) || stocks.length === 0) {
+      breakoutGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px 0;">No breakout data available right now.</div>';
+      return;
+    }
+
+    breakoutGrid.innerHTML = '';
+    
+    // Process up to 15 stocks from the actual market data
+    stocks.slice(0, 15).forEach(stock => {
+      const changeValue = parseFloat(stock.change_percent) || 0;
+      const scoreClass = changeValue >= 0 ? 'up' : 'down';
+      const sign = changeValue >= 0 ? '+' : '';
+      
+      const card = document.createElement('div');
+      card.className = 'bought-item';
+      card.style.cursor = 'pointer';
+      
+      // Navigate to the detail page on click
+      card.addEventListener('click', () => {
+        window.location.href = `stocks.html?symbol=${stock.symbol}`;
+      });
+
+      // Grab the first letter of the stock for the logo icon placeholder
+      const firstLetter = stock.symbol ? stock.symbol.charAt(0) : 'N';
+
+      card.innerHTML = `
+        <div class="bought-logo" style="color: #1a3fa0;">${firstLetter}</div>
+        <div class="bought-name">${stock.symbol}</div>
+        <div class="bought-price">₹${Number(stock.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+        <div class="bought-change ${scoreClass}">${sign}${changeValue.toFixed(2)}%</div>
+      `;
+      
+      breakoutGrid.appendChild(card);
+    });
+  } catch (error) {
+    console.error('Error loading breakout cards:', error);
+    breakoutGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #ef4444; padding: 20px 0;">Failed to fetch live breakout cards.</div>';
   }
 }
