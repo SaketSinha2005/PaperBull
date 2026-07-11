@@ -90,6 +90,48 @@
     localStorage.setItem(ORDERS_KEY, JSON.stringify(orders.slice(0, 200)));
   }
 
+  // ---------------- market hours ----------------
+  function getMarketStatus() {
+    if (window.PaperBullMarketHours) return window.PaperBullMarketHours.getMarketStatus();
+    // Fail open-ish but conservative: if the helper failed to load, treat
+    // the market as closed rather than silently allowing trades.
+    return { isOpen: false, message: "Market status unavailable — please reload the page." };
+  }
+
+  // ---------------- intraday (MIS) bookkeeping ----------------
+  // Tracks, per trading day, how many currently-held shares of each symbol
+  // were bought under "Intraday (MIS)" today and haven't been sold yet, so
+  // dashboard.js's end-of-day sweep knows exactly what to auto square-off.
+  function ensureIntradayFresh(portfolio) {
+    const today = getMarketStatus().dateKey;
+    if (portfolio.intradayDate !== today) {
+      portfolio.intraday = {};
+      portfolio.intradayDate = today;
+    }
+    if (!portfolio.intraday || typeof portfolio.intraday !== "object") portfolio.intraday = {};
+    return portfolio;
+  }
+
+  function applyIntradayBookkeeping(portfolio, order) {
+    ensureIntradayFresh(portfolio);
+    const bucket = portfolio.intraday;
+    if (order.side === "buy") {
+      if (order.product === "Intraday (MIS)") {
+        const cur = bucket[order.symbol] || { qty: 0, avgPrice: 0, name: order.name };
+        const newQty = cur.qty + order.qty;
+        const newAvg = (cur.avgPrice * cur.qty + order.price * order.qty) / newQty;
+        bucket[order.symbol] = { qty: newQty, avgPrice: Math.round(newAvg * 100) / 100, name: order.name };
+      }
+    } else {
+      const cur = bucket[order.symbol];
+      if (cur && cur.qty > 0) {
+        const remaining = cur.qty - Math.min(cur.qty, order.qty);
+        if (remaining <= 0) delete bucket[order.symbol];
+        else bucket[order.symbol] = Object.assign({}, cur, { qty: remaining });
+      }
+    }
+  }
+
   // ---------------- stock list / search ----------------
   async function loadStockList() {
     try {
@@ -485,6 +527,27 @@
     if (chartPoints.length) drawChart();
   });
 
+  // ---------------- market status banner / gating ----------------
+  function updateMarketBanner() {
+    const status = getMarketStatus();
+    const banner = $("orderMarketStatus");
+    const reviewBtn = $("orderReviewBtn");
+
+    if (banner) {
+      banner.hidden = false;
+      banner.textContent = status.isOpen ? status.message : status.message;
+      banner.classList.toggle("market-open", !!status.isOpen);
+      banner.classList.toggle("market-closed", !status.isOpen);
+    }
+
+    if (reviewBtn) {
+      reviewBtn.disabled = !status.isOpen;
+      reviewBtn.title = status.isOpen ? "" : "Trading is only available while the market is open.";
+    }
+
+    return status;
+  }
+
   // ---------------- order form logic ----------------
   function recomputeEstimate() {
     const qty = Math.max(0, parseInt($("orderQty").value, 10) || 0);
@@ -521,6 +584,12 @@
 
   function openReviewModal() {
     clearError();
+
+    const marketStatus = updateMarketBanner();
+    if (!marketStatus.isOpen) {
+      showError(marketStatus.message || "The market is closed right now. Trading hours are 9:15 AM – 3:30 PM IST, Monday to Friday.");
+      return;
+    }
 
     if (!currentStock) {
       showError("Search and select a stock first.");
@@ -602,6 +671,13 @@
   }
 
   function placeOrder() {
+    const marketStatus = updateMarketBanner();
+    if (!marketStatus.isOpen) {
+      closeReviewModal();
+      showError(marketStatus.message || "The market is closed right now. Trading hours are 9:15 AM – 3:30 PM IST, Monday to Friday.");
+      return;
+    }
+
     const { qty, price, amount } = recomputeEstimate();
     const s = currentStock;
 
@@ -663,6 +739,8 @@
         portfolio.holdings[s.symbol] = { qty: remainingQty, avgPrice: held.avgPrice, name: s.name };
       }
     }
+
+    applyIntradayBookkeeping(portfolio, { symbol: s.symbol, name: s.name, side: currentSide, qty, price, product: currentProduct });
 
     savePortfolio(portfolio);
 
@@ -768,6 +846,8 @@
   // ---------------- wire up ----------------
   function init() {
     loadStockList();
+    updateMarketBanner();
+    setInterval(updateMarketBanner, 30000);
 
     $("sideTabBuy").addEventListener("click", () => setSide("buy"));
     $("sideTabSell").addEventListener("click", () => setSide("sell"));
