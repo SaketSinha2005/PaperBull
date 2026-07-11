@@ -74,36 +74,19 @@
 
       <section class="card">
         <div class="card-header">
-          <h2>Most bought stocks </h2>
-          <a href="#" class="link-arrow">See more <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <h2>52 Week Breakouts</h2>
+          <div class="pill-tabs">
+            <button class="pill active" id="breakout-high-btn">52W High</button>
+            <button class="pill" id="breakout-low-btn">52W Low</button>
+          </div>
         </div>
-        <div class="bought-grid">
-          <div class="bought-item" data-symbol="VEDANTAIRON" data-name="Vedanta Iron &amp; Steel" data-price="30.88" data-change="+1.47" data-pct="(5.00%)" data-up="true">
-            <div class="bought-logo logo-vedanta-iron">V</div>
-            <div class="bought-name">Vedanta Iron &amp; Steel</div>
-            <div class="bought-price">₹30.88</div>
-            <div class="bought-change up">+1.47 (5.00%)</div>
-          </div>
-          <div class="bought-item" data-symbol="TATAGOLD" data-name="TATAGOLD" data-price="13.50" data-change="-0.32" data-pct="(2.32%)" data-up="false">
-            <div class="bought-logo logo-tatagold">T</div>
-            <div class="bought-name">TATAGOLD</div>
-            <div class="bought-price">₹13.50</div>
-            <div class="bought-change down">-0.32 (2.32%)</div>
-          </div>
-          <div class="bought-item" data-symbol="VEDL" data-name="Vedanta" data-price="273.45" data-change="-9.10" data-pct="(3.22%)" data-up="false">
-            <div class="bought-logo logo-vedanta">⊙</div>
-            <div class="bought-name">Vedanta</div>
-            <div class="bought-price">₹273.45</div>
-            <div class="bought-change down">-9.10 (3.22%)</div>
-          </div>
-          <div class="bought-item" data-symbol="TATSILV" data-name="TATSILV" data-price="21.02" data-change="-0.64" data-pct="(2.95%)" data-up="false">
-            <div class="bought-logo logo-tatsilv">T</div>
-            <div class="bought-name">TATSILV</div>
-            <div class="bought-price">₹21.02</div>
-            <div class="bought-change down">-0.64 (2.95%)</div>
+        <div class="bought-grid" id="breakout-cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+          <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px 0;">
+            Loading live market breakout data...
           </div>
         </div>
       </section>
+    
 
       <section class="card">
         <div class="card-header">
