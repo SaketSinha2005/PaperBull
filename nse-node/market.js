@@ -1,9 +1,17 @@
 const express = require("express");
 const router  = express.Router();
+const fs = require("fs");
+const path = require("path");
 const YahooFinance = require("yahoo-finance2").default;
 const yahooFinance = new YahooFinance();
 
-const STOCK_UNIVERSE = [
+// Small, hand-curated set of the best-known large/mid caps. This is no
+// longer the full tradable universe (see getStockUniverse() below), but we
+// keep it around for two things: (1) accurate sector/cap labels for these
+// well-known names, since NSE's master list doesn't include that, and
+// (2) an offline fallback if we can't reach NSE at all and there's no
+// on-disk cache yet.
+const CURATED_UNIVERSE = [
   { symbol: "RELIANCE",   name: "Reliance Industries",        sector: "Energy",                cap: "Large" },
   { symbol: "TCS",        name: "Tata Consultancy Services",  sector: "IT - Services",          cap: "Large" },
   { symbol: "HDFCBANK",   name: "HDFC Bank",                  sector: "Banking",                cap: "Large" },
@@ -56,6 +64,102 @@ const STOCK_UNIVERSE = [
 
 const yfSymbol = (symbol) => (symbol.includes(".") ? symbol : `${symbol}.NS`);
 
+// ---------------------------------------------------------------------
+// Full NSE universe (2000+ equities), built from NSE's own master list
+// instead of a hand-typed array. Cached on disk for a day so we're not
+// re-fetching it on every server restart, and we fall back to whatever
+// we have (disk cache, then the curated list above) if NSE can't be
+// reached at all.
+// ---------------------------------------------------------------------
+const EQUITY_LIST_URL = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv";
+const EQUITY_CACHE_PATH = path.join(__dirname, "equity-universe-cache.json");
+const EQUITY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // the master list barely changes intraday
+
+function parseEquityCsv(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
+  const rows = [];
+  // Skip the header row.
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(",");
+    if (cols.length < 3) continue;
+    const symbol = (cols[0] || "").trim();
+    const name = (cols[1] || "").trim();
+    const series = (cols[2] || "").trim();
+    if (!symbol || !name) continue;
+    rows.push({ symbol, name, series });
+  }
+  return rows;
+}
+
+async function fetchEquityListFromNSE() {
+  const resp = await fetch(EQUITY_LIST_URL, { headers: YF_HEADERS });
+  if (!resp.ok) throw new Error(`NSE equity list request failed: ${resp.status}`);
+  const text = await resp.text();
+  const rows = parseEquityCsv(text);
+  // "EQ" is the regular main-board equity series. BE/BZ/etc. are
+  // trade-to-trade or suspended series that are usually illiquid/rarely
+  // relevant for a general "browse all stocks" page.
+  return rows.filter((r) => r.series === "EQ");
+}
+
+function loadCachedEquityList() {
+  try {
+    const raw = fs.readFileSync(EQUITY_CACHE_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.rows) && parsed.fetchedAt) return parsed;
+  } catch (err) {}
+  return null;
+}
+
+function saveCachedEquityList(rows) {
+  try {
+    fs.writeFileSync(EQUITY_CACHE_PATH, JSON.stringify({ fetchedAt: Date.now(), rows }));
+  } catch (err) {
+    console.error("Failed to write NSE equity universe cache:", err.message);
+  }
+}
+
+let universePromise = null;
+
+async function getStockUniverse() {
+  if (universePromise) return universePromise;
+
+  universePromise = (async () => {
+    const cached = loadCachedEquityList();
+    const isFresh = cached && Date.now() - cached.fetchedAt < EQUITY_CACHE_TTL_MS;
+    let rows = cached ? cached.rows : null;
+
+    if (!isFresh) {
+      try {
+        rows = await fetchEquityListFromNSE();
+        saveCachedEquityList(rows);
+        console.log(`Loaded ${rows.length} NSE-listed equities.`);
+      } catch (err) {
+        console.error("Failed to fetch NSE equity master list, using cache/fallback instead:", err.message);
+      }
+    }
+
+    if (!rows || !rows.length) {
+      console.warn(`Falling back to the curated ${CURATED_UNIVERSE.length}-stock list (no NSE master list available).`);
+      return CURATED_UNIVERSE;
+    }
+
+    const curatedBySymbol = new Map(CURATED_UNIVERSE.map((s) => [s.symbol, s]));
+    return rows.map((r) => {
+      const known = curatedBySymbol.get(r.symbol);
+      return {
+        symbol: r.symbol,
+        name: known ? known.name : r.name,
+        sector: known ? known.sector : "Other",
+        cap: known ? known.cap : null, // filled in from live market cap once we have a quote
+      };
+    });
+  })();
+
+  return universePromise;
+}
+
+
 const fmtNumber = (n) =>
   n == null || Number.isNaN(n) ? null : Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
@@ -106,17 +210,36 @@ async function fetchHistory(symbol, rangeDays = 5) {
 // Small set of recent intraday closes, used to draw the little live sparkline
 // next to each row on the Stocks list (replaces the old fake/deterministic
 // squiggle that had nothing to do with the stock's actual price).
+//
+// Uses a 5-day window (not just "today") and then picks out the most recent
+// trading day that actually has data. Requesting only "today" breaks over
+// weekends/holidays/after-hours, since there's no session for the current
+// calendar day yet — this way we always fall back to the last real session
+// instead of coming back empty when the market's closed.
 async function fetchSparkline(symbol) {
   try {
     const url =
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
-      `?range=1d&interval=15m&includePrePost=false`;
+      `?range=5d&interval=15m&includePrePost=false`;
     const resp = await fetch(url, { headers: YF_HEADERS });
     if (!resp.ok) return [];
     const json = await resp.json();
     const result = json?.chart?.result?.[0];
+    if (!result) return [];
+
+    const timestamps = result.timestamp || [];
     const closes = result?.indicators?.quote?.[0]?.close || [];
-    return closes.filter((c) => c != null).map((c) => Math.round(c * 100) / 100);
+    if (!timestamps.length) return [];
+
+    const tz = result.meta?.exchangeTimezoneName || "Asia/Kolkata";
+    const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
+    const rows = timestamps
+      .map((ts, i) => ({ dateStr: dayFmt.format(new Date(ts * 1000)), close: closes[i] }))
+      .filter((r) => r.close != null);
+    if (!rows.length) return [];
+
+    const lastDate = rows[rows.length - 1].dateStr;
+    return rows.filter((r) => r.dateStr === lastDate).map((r) => Math.round(r.close * 100) / 100);
   } catch (err) {
     return [];
   }
@@ -145,7 +268,7 @@ async function fetchIntraday(symbol) {
 // Maps the UI's short range labels to Yahoo Finance's `range`/`interval`
 // query params.
 const RANGE_PRESETS = {
-  "1D": { range: "1d", interval: "5m" },
+  "1D": { range: "5d", interval: "5m" },
   "1W": { range: "5d", interval: "30m" },
   "1M": { range: "1mo", interval: "1d" },
   "3M": { range: "3mo", interval: "1d" },
@@ -328,18 +451,110 @@ router.get("/header-indices", async (_req, res) => {
   res.json(results);
 });
 
-router.get("/stocks", async (_req, res) => {
-  try {
-    const symbols = STOCK_UNIVERSE.map((s) => yfSymbol(s.symbol));
-    const quotes = await yahooFinance.quote(symbols);
-    const quoteList = Array.isArray(quotes) ? quotes : [quotes];
+// Fetches quotes for a big symbol list in manageable chunks (Yahoo's quote
+// endpoint gets unreliable/URL-length-limited if you throw thousands of
+// symbols at it in one go). A failed chunk is skipped rather than aborting
+// the whole batch, so one bad symbol doesn't take down the rest.
+// Raw-fetch version of a quote batch, same style as fetchSeries/fetchHistory
+// above (plain HTTP + YF_HEADERS, no crumb/cookie handshake). The
+// yahoo-finance2 library's .quote() needs a session crumb from Yahoo, which
+// is the part of Yahoo's API that tends to get blocked/rate-limited from
+// server environments — this sidesteps that entirely, the same way the
+// working single-stock chart endpoint does.
+async function fetchQuoteChunkRaw(chunk) {
+  const url =
+    `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(chunk.join(","))}`;
+  const resp = await fetch(url, { headers: YF_HEADERS });
+  if (!resp.ok) throw new Error(`Yahoo quote endpoint returned ${resp.status}`);
+  const json = await resp.json();
+  const list = json?.quoteResponse?.result || [];
+  if (json?.quoteResponse?.error) throw new Error(json.quoteResponse.error);
+  return list;
+}
 
-    const bySymbol = {};
-    quoteList.forEach((q) => {
+async function fetchQuotesInBatches(symbols, batchSize = 120) {
+  const bySymbol = {};
+  for (let i = 0; i < symbols.length; i += batchSize) {
+    const chunk = symbols.slice(i, i + batchSize);
+    let list = [];
+    try {
+      list = await fetchQuoteChunkRaw(chunk);
+    } catch (err) {
+      console.error(`Raw quote batch starting at ${chunk[0]} failed, falling back to yahoo-finance2:`, err.message);
+      try {
+        const quotes = await yahooFinance.quote(chunk);
+        list = Array.isArray(quotes) ? quotes : [quotes];
+      } catch (err2) {
+        console.error(`Fallback quote batch starting at ${chunk[0]} also failed:`, err2.message);
+      }
+    }
+    list.forEach((q) => {
       if (q && q.symbol) bySymbol[q.symbol] = q;
     });
+    // Small pause between chunks so we don't hammer Yahoo.
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return bySymbol;
+}
 
-    const results = STOCK_UNIVERSE.map((s) => {
+const LARGE_CAP_THRESHOLD = 2e11; // ~₹20,000 Cr
+const MID_CAP_THRESHOLD = 5e10;   // ~₹5,000 Cr
+
+function inferCapBucket(marketCap) {
+  if (marketCap == null) return "Small";
+  if (marketCap >= LARGE_CAP_THRESHOLD) return "Large";
+  if (marketCap >= MID_CAP_THRESHOLD) return "Mid";
+  return "Small";
+}
+
+// True per-symbol intraday sparklines cost one extra HTTP request each —
+// fetching all 2000+ at once, every cache refresh, would hammer Yahoo and
+// take far too long. Instead we keep a persistent cache and fetch a rotating
+// batch of it every refresh cycle (biggest names first, then whichever
+// symbols haven't been fetched yet, then whichever are stalest). Within a
+// few refresh cycles every stock in the universe has a real, fetched
+// intraday sparkline — and it keeps quietly refreshing after that so none
+// of them go stale for long. Until a symbol's first real fetch comes back,
+// it shows a genuine (not fake) placeholder built for free from the bulk
+// quote's open/day-low/day-high/previous-close fields.
+const SPARKLINE_BATCH_SIZE = 150;
+const SPARKLINE_REFRESH_MS = 5 * 60 * 1000; // re-fetch each symbol at most every 5 min
+const sparkCache = new Map(); // symbol -> { data, updatedAt }
+
+function buildQuickSpark(q, isUp) {
+  const { regularMarketPreviousClose: prevClose, regularMarketOpen: open,
+    regularMarketDayLow: low, regularMarketDayHigh: high, regularMarketPrice: price } = q;
+  const ordered = isUp ? [prevClose, open, low, high, price] : [prevClose, open, high, low, price];
+  return ordered.filter((v) => typeof v === "number").map((v) => Math.round(v * 100) / 100);
+}
+
+// Picks which symbols to actually hit Yahoo for this cycle: symbols that
+// have never been fetched (biggest market cap first) take priority, then
+// symbols whose cached sparkline is old enough to need refreshing.
+function pickSparkTargets(results) {
+  const now = Date.now();
+  const stale = results.filter((s) => {
+    const cached = sparkCache.get(s.symbol);
+    return !cached || now - cached.updatedAt > SPARKLINE_REFRESH_MS;
+  });
+  stale.sort((a, b) => {
+    const ca = sparkCache.get(a.symbol);
+    const cb = sparkCache.get(b.symbol);
+    if (!ca && !cb) return (b.marketCapCr || 0) - (a.marketCapCr || 0);
+    if (!ca) return -1;
+    if (!cb) return 1;
+    return ca.updatedAt - cb.updatedAt;
+  });
+  return stale.slice(0, SPARKLINE_BATCH_SIZE);
+}
+
+async function buildStocksSnapshot() {
+  const universe = await getStockUniverse();
+  const symbols = universe.map((s) => yfSymbol(s.symbol));
+  const bySymbol = await fetchQuotesInBatches(symbols);
+
+  const results = universe
+    .map((s) => {
       const q = bySymbol[yfSymbol(s.symbol)];
       if (!q || q.regularMarketPrice == null) return null;
 
@@ -352,23 +567,64 @@ router.get("/stocks", async (_req, res) => {
         symbol: s.symbol,
         name: q.longName || q.shortName || s.name,
         sector: s.sector,
-        cap: s.cap,
+        cap: s.cap || inferCapBucket(q.marketCap),
         price: Math.round(price * 100) / 100,
         change: Math.round(change * 100) / 100,
         changePct: Math.round(changePct * 100) / 100,
         is_up: change >= 0,
         marketCapCr,
+        spark: buildQuickSpark(q, change >= 0),
       };
-    }).filter(Boolean);
+    })
+    .filter(Boolean);
 
-    // Pull today's intraday closes for each stock in parallel so the list's
-    // sparkline column reflects real price action instead of a fake squiggle.
-    const sparkLists = await Promise.all(
-      results.map((s) => fetchSparkline(yfSymbol(s.symbol)))
-    );
-    results.forEach((s, i) => { s.spark = sparkLists[i]; });
+  // Apply whatever real sparklines earlier cycles already fetched.
+  results.forEach((s) => {
+    const cached = sparkCache.get(s.symbol);
+    if (cached) s.spark = cached.data;
+  });
 
-    res.json(results);
+  // Fetch this cycle's rotating batch and fold the fresh results straight
+  // into both the cache (for next time) and this response (for right now).
+  const sparkTargets = pickSparkTargets(results);
+  const sparkLists = await Promise.all(sparkTargets.map((s) => fetchSparkline(yfSymbol(s.symbol))));
+  sparkTargets.forEach((s, i) => {
+    const data = sparkLists[i];
+    if (Array.isArray(data) && data.length >= 2) {
+      sparkCache.set(s.symbol, { data, updatedAt: Date.now() });
+      s.spark = data;
+    }
+  });
+
+  return results;
+}
+
+// Building a full snapshot of 2000+ quotes takes real time (many chunked
+// Yahoo calls), so we don't do it on every request. Instead we serve
+// whatever's cached and kick off a background refresh once it's stale,
+// only blocking a request if the cache is completely empty (first hit
+// after a fresh server start).
+const STOCKS_CACHE_TTL_MS = 60 * 1000;
+let stocksCache = { data: [], updatedAt: 0, refreshing: null };
+
+async function refreshStocksCache() {
+  try {
+    const data = await buildStocksSnapshot();
+    stocksCache = { data, updatedAt: Date.now(), refreshing: null };
+  } catch (err) {
+    console.error("Failed to refresh the full stock universe cache:", err.message);
+    stocksCache.refreshing = null;
+  }
+}
+
+router.get("/stocks", async (_req, res) => {
+  try {
+    if (!stocksCache.data.length) {
+      await refreshStocksCache(); // cold start: block once so it isn't empty
+    } else if (Date.now() - stocksCache.updatedAt > STOCKS_CACHE_TTL_MS && !stocksCache.refreshing) {
+      stocksCache.refreshing = refreshStocksCache();
+    }
+    res.json(stocksCache.data);
   } catch (err) {
     console.error("Error fetching /api/stocks:", err.message);
     res.status(500).json({ error: "Failed to fetch stock list" });
@@ -378,7 +634,8 @@ router.get("/stocks", async (_req, res) => {
 router.get("/stock/:symbol", async (req, res) => {
   const rawSymbol = req.params.symbol.toUpperCase();
   const symbol = yfSymbol(rawSymbol);
-  const universeEntry = STOCK_UNIVERSE.find((s) => s.symbol === rawSymbol);
+  const universe = await getStockUniverse();
+  const universeEntry = universe.find((s) => s.symbol === rawSymbol);
 
   try {
     const [quote, summary] = await Promise.all([
