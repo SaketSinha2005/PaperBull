@@ -97,16 +97,159 @@ async function fetchMovers(indexType, requestedCategory = 'NIFTY') {
     return mappedStocks;
 }
 
+// Reusable function to fetch 52-week breakouts from the broader market
+async function fetch52WeekBreakouts(type = 'high') {
+    const baseResponse = await axios.get("https://www.nseindia.com", { headers: HEADERS });
+    let cookieString = '';
+
+    if (baseResponse.headers['set-cookie']) {
+        cookieString = baseResponse.headers['set-cookie'].map(c => c.split(';')[0]).join('; ');
+    }
+    const reqHeaders = { ...HEADERS, "Cookie": cookieString };
+
+    let moversData = [];
+
+    // Small helper: NSE nests these responses differently depending on the
+    // endpoint (e.g. gainers/losers come back as { NIFTY: { data: [...] } }).
+    // Try the flat shape first, then fall back to scanning any object/array
+    // values in the payload so we don't silently end up with [].
+    function extractList(payload, label) {
+        if (!payload) return [];
+        if (Array.isArray(payload.data) && payload.data.length) return payload.data;
+
+        // Try common NSE-style nested keys
+        const candidateKeys = Object.keys(payload).filter(
+            (k) => payload[k] && (Array.isArray(payload[k]) || Array.isArray(payload[k].data))
+        );
+        for (const key of candidateKeys) {
+            const val = payload[key];
+            const list = Array.isArray(val) ? val : val.data;
+            if (Array.isArray(list) && list.length) {
+                console.log(`[52week:${label}] using nested key "${key}" (${list.length} rows)`);
+                return list;
+            }
+        }
+
+        console.log(`[52week:${label}] no usable array found. Top-level keys:`, Object.keys(payload));
+        return [];
+    }
+
+    try {
+        // Primary NSE endpoint for 52 week data
+        const url = `https://www.nseindia.com/api/live-analysis-52Week?index=${type}`;
+        const response = await axios.get(url, { headers: reqHeaders });
+        console.log(`[52week:${type}] primary status ${response.status}, keys:`, Object.keys(response.data || {}));
+        moversData = extractList(response.data, `${type}-primary`);
+    } catch (nseErr) {
+        console.log(`NSE 52 Week API failed for ${type} (${nseErr.response?.status || nseErr.message}), trying fallback...`);
+    }
+
+    if (moversData.length === 0) {
+        try {
+            // Fallback endpoint if the primary NSE route is throttled/renamed
+            const fallbackUrl = `https://www.nseindia.com/api/live-analysis-variations?index=52Week${type === 'high' ? 'High' : 'Low'}`;
+            const fbResponse = await axios.get(fallbackUrl, { headers: reqHeaders });
+            console.log(`[52week:${type}] fallback status ${fbResponse.status}, keys:`, Object.keys(fbResponse.data || {}));
+            moversData = extractList(fbResponse.data, `${type}-fallback`);
+        } catch (fbErr) {
+            console.error("Fallback NSE 52 Week API failed:", fbErr.response?.status || fbErr.message);
+        }
+    }
+
+    // Capture the top 15 breakout stocks
+    const dataList = moversData.slice(0, 15);
+    const mappedStocks = [];
+
+    for (const stock of dataList) {
+        let chartPoints = [];
+        try {
+            // Fetch intra-day sparkline from Yahoo Finance using the mapped breakout symbol
+            const yfSymbol = `${stock.symbol}.NS`;
+            const now = new Date();
+            const oneDayAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+            const yfResult = await yahooFinance.chart(yfSymbol, {
+                period1: oneDayAgo,
+                period2: now,
+                interval: '5m',
+                return: 'array'
+            });
+
+            if (yfResult && yfResult.quotes && yfResult.quotes.length > 0) {
+                const lastQuoteDate = new Date(yfResult.quotes[yfResult.quotes.length - 1].date);
+                const lastDayString = lastQuoteDate.toDateString();
+
+                chartPoints = yfResult.quotes
+                    .filter(q => new Date(q.date).toDateString() === lastDayString)
+                    .map(q => q.close)
+                    .filter(c => c !== null);
+            }
+            await new Promise(resolve => setTimeout(resolve, 200)); // Prevent rate-limit
+        } catch (yfErr) {
+            console.error(`Yahoo Finance chart failed for ${stock.symbol}:`, yfErr.message);
+        }
+
+        // Map the properties depending on which NSE JSON structure was returned
+        mappedStocks.push({
+            symbol: stock.symbol,
+            price: stock.ltp || stock.lastPrice,
+            change_percent: stock.perChange || stock.pChange,
+            volume: stock.trade_quantity || stock.tradedQuantity,
+            previous_close: stock.prev_price || stock.previousPrice,
+            chart: chartPoints
+        });
+    }
+
+    if (mappedStocks.length === 0) {
+        console.warn(`[52week:${type}] returning empty result — check the [52week:...] logs above for the real NSE payload shape.`);
+    }
+
+    return mappedStocks;
+}
+
 app.get('/api/gainers', async (req, res) => {
-    const category = req.query.category || 'NIFTY';
-    const data = await fetchMovers('gainers', category);
-    res.json(data);
+    try {
+        const category = req.query.category || 'NIFTY';
+        const data = await fetchMovers('gainers', category);
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /api/gainers:', error.message);
+        res.status(500).json({ error: 'Failed to fetch gainers' });
+    }
 });
 
 app.get('/api/losers', async (req, res) => {
-    const category = req.query.category || 'NIFTY';
-    const data = await fetchMovers('loosers', category);
-    res.json(data);
+    try {
+        const category = req.query.category || 'NIFTY';
+        const data = await fetchMovers('loosers', category);
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /api/losers:', error.message);
+        res.status(500).json({ error: 'Failed to fetch losers' });
+    }
+});
+
+// These two were missing entirely, which is why the 52 Week Breakouts
+// card always 404'd — fetch52WeekBreakouts() existed but had no route
+// pointing at it.
+app.get('/api/52week-high', async (req, res) => {
+    try {
+        const data = await fetch52WeekBreakouts('high');
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /api/52week-high:', error.message);
+        res.status(500).json({ error: 'Failed to fetch 52 week highs' });
+    }
+});
+
+app.get('/api/52week-low', async (req, res) => {
+    try {
+        const data = await fetch52WeekBreakouts('low');
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /api/52week-low:', error.message);
+        res.status(500).json({ error: 'Failed to fetch 52 week lows' });
+    }
 });
 
 // Endpoint 1: Gainers
