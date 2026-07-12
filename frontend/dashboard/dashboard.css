@@ -1861,3 +1861,148 @@ box-shadow:none; }
   .holding-row-daychange { flex: 1 1 45%; text-align: left; order: 2; }
   .holding-row-ltp { flex: 0 0 auto; text-align: right; order: 3; margin-left: auto; }
 }
+
+
+/* Change the container to a vertical list */
+#breakout-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0; 
+}
+
+/* Convert the card items into horizontal rows */
+#breakout-cards-grid .bought-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Override the old hover effect so the row doesn't "jump" */
+#breakout-cards-grid .bought-item:hover {
+  transform: none;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Remove the bottom border on the last item for a clean finish */
+#breakout-cards-grid .bought-item:last-child {
+  border-bottom: none;
+}
+
+/* Re-align the inner elements into a row */
+#breakout-cards-grid .bought-logo {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 0;
+  margin-right: 14px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+
+#breakout-cards-grid .bought-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.breakout-company-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.breakout-company-sym {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+#breakout-cards-grid .bought-series {
+  flex: 0 0 60px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+#breakout-cards-grid .bought-price {
+  flex: 0 0 110px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+#breakout-cards-grid .bought-change {
+  flex: 0 0 80px;
+  min-width: auto;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+#breakout-cards-grid .bought-new52 {
+  flex: 0 0 120px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+#breakout-cards-grid .bought-prevdate {
+  flex: 0 0 100px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* Header container styling */
+.breakout-list-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.header-col-company {
+  flex: 1;
+  padding-left: 50px; /* logo (36px) + margin-right (14px) */
+}
+
+.header-col-series {
+  flex: 0 0 60px;
+  text-align: center;
+}
+
+.header-col-price {
+  flex: 0 0 110px;
+  text-align: right;
+}
+
+.header-col-change {
+  flex: 0 0 80px;
+  text-align: right;
+}
+
+.header-col-new52 {
+  flex: 0 0 120px;
+  text-align: right;
+}
+
+.header-col-prevdate {
+  flex: 0 0 100px;
+  text-align: right;
+}
