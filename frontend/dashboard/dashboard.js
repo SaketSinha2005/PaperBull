@@ -717,24 +717,43 @@ async function fetchBreakoutCards(endpoint) {
       const changeValue = parseFloat(stock.change_percent) || 0;
       const scoreClass = changeValue >= 0 ? 'up' : 'down';
       const sign = changeValue >= 0 ? '+' : '';
-      
+
       const card = document.createElement('div');
       card.className = 'bought-item';
       card.style.cursor = 'pointer';
-      
-      // Navigate to the detail page on click
+
       card.addEventListener('click', () => {
         window.location.href = `stocks.html?symbol=${stock.symbol}`;
       });
 
-      // Grab the first letter of the stock for the logo icon placeholder
       const firstLetter = stock.symbol ? stock.symbol.charAt(0) : 'N';
+      const companyName = stock.name && stock.name !== stock.symbol ? stock.name : stock.symbol;
+      const series = stock.series || 'EQ';
+      const ltp = Number(stock.price || 0);
+      const new52 = Number(stock.new52WkPrice || stock.price || 0);
+
+      // Format previous date: show as DD-MMM-YYYY if parseable, else raw
+      let prevDateStr = '—';
+      if (stock.prevDate) {
+        const d = new Date(stock.prevDate);
+        if (!isNaN(d)) {
+          prevDateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        } else {
+          prevDateStr = stock.prevDate;
+        }
+      }
 
       card.innerHTML = `
         <div class="bought-logo" style="color: #1a3fa0;">${firstLetter}</div>
-        <div class="bought-name">${stock.symbol}</div>
-        <div class="bought-price">₹${Number(stock.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+        <div class="bought-name">
+          <span class="breakout-company-name">${companyName}</span>
+          <span class="breakout-company-sym">${stock.symbol}</span>
+        </div>
+        <div class="bought-series">${series}</div>
+        <div class="bought-price">₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
         <div class="bought-change ${scoreClass}">${sign}${changeValue.toFixed(2)}%</div>
+        <div class="bought-new52">₹${new52.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+        <div class="bought-prevdate">${prevDateStr}</div>
       `;
       
       breakoutGrid.appendChild(card);
