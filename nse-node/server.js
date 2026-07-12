@@ -191,12 +191,16 @@ async function fetch52WeekBreakouts(type = 'high') {
 
         // Map the properties depending on which NSE JSON structure was returned
         mappedStocks.push({
-            symbol: stock.symbol,
-            price: stock.ltp || stock.lastPrice,
+            symbol:        stock.symbol,
+            name:          stock.companyName || stock.symbol,
+            series:        stock.series || 'EQ',
+            price:         stock.ltp || stock.lastPrice,
             change_percent: stock.perChange || stock.pChange,
-            volume: stock.trade_quantity || stock.tradedQuantity,
+            volume:        stock.trade_quantity || stock.tradedQuantity,
             previous_close: stock.prev_price || stock.previousPrice,
-            chart: chartPoints
+            new52WkPrice:  stock.new52WkHigh || stock.new52WkLow || stock.ltp || stock.lastPrice,
+            prevDate:      stock.prevDate || stock.date52WeekHigh || stock.date52WeekLow || null,
+            chart:         chartPoints
         });
     }
 
