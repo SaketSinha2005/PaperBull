@@ -80,7 +80,17 @@
             <button class="pill" id="breakout-low-btn">52W Low</button>
           </div>
         </div>
-        <div class="bought-grid" id="breakout-cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+
+        <div class="breakout-list-header">
+          <div class="header-col-company">Company</div>
+          <div class="header-col-series">Series</div>
+          <div class="header-col-price">LTP</div>
+          <div class="header-col-change">%CHNG</div>
+          <div class="header-col-new52">New 52W Price</div>
+          <div class="header-col-prevdate">Prev. Date</div>
+        </div>
+
+        <div class="bought-grid" id="breakout-cards-grid">
           <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px 0;">
             Loading live market breakout data...
           </div>
@@ -358,6 +368,6 @@
     </aside>
   </div>
 
-  <script src="dashboard.js?v=3"></script>
+  <script src="dashboard.js?v=4"></script>
 </body>
 </html>
