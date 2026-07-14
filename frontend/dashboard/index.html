@@ -142,35 +142,29 @@
 
       <section class="card">
         <div class="card-header">
-          <h2>Top intraday stocks</h2>
-          <a href="#" class="link-arrow">Intraday screener <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <h2>Currency Snapshot Rates</h2>
+          <a href="#" class="link-arrow">Powered by Yahoo Finance <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         </div>
-        <div class="intraday-grid">
-          <div class="intraday-item" data-symbol="RAMCOSYS" data-name="Ramco Systems" data-price="709.80" data-change="36.00" data-pct="(5.34%)" data-up="true">
-            <div class="intraday-logo logo-ramco-sys">R</div>
-            <div class="intraday-name">Ramco Systems</div>
-            <div class="intraday-price">₹709.80</div>
-            <div class="intraday-change up">36.00 (5.34%)</div>
-          </div>
-          <div class="intraday-item" data-symbol="RELAXO" data-name="Relaxo Footwears" data-price="413.55" data-change="44.60" data-pct="(12.09%)" data-up="true">
-            <div class="intraday-logo logo-relaxo">R</div>
-            <div class="intraday-name">Relaxo Footwears</div>
-            <div class="intraday-price">₹413.55</div>
-            <div class="intraday-change up">44.60 (12.09%)</div>
-          </div>
-          <div class="intraday-item" data-symbol="RAMCOIND" data-name="Ramco Industries" data-price="342.75" data-change="38.60" data-pct="(12.69%)" data-up="true">
-            <div class="intraday-logo logo-ramco-ind">R</div>
-            <div class="intraday-name">Ramco Industries</div>
-            <div class="intraday-price">₹342.75</div>
-            <div class="intraday-change up">38.60 (12.69%)</div>
-          </div>
-          <div class="intraday-item" data-symbol="PIX" data-name="Pix Transmission" data-price="1,796.10" data-change="183.30" data-pct="(11.37%)" data-up="true">
-            <div class="intraday-logo logo-pix">⚙</div>
-            <div class="intraday-name">Pix Transmission</div>
-            <div class="intraday-price">₹1,796.10</div>
-            <div class="intraday-change up">183.30 (11.37%)</div>
-          </div>
-        </div>
+        
+        <table class="currency-table">
+          <thead>
+            <tr>
+              <th class="col-contracts">Currency Pair</th>
+              <th class="col-curr-ltp">LTP</th>
+              <th class="col-curr-change">Change</th>
+              <th class="col-curr-pct">% Change</th>
+              <th class="col-curr-prev">Prev Close</th>
+              <th class="col-curr-state">Status</th>
+            </tr>
+          </thead>
+          <tbody id="currency-table-body">
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                Loading live currency data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <section class="card">
