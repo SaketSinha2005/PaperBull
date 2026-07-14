@@ -763,3 +763,70 @@ async function fetchBreakoutCards(endpoint) {
     breakoutGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #ef4444; padding: 20px 0;">Failed to fetch live breakout cards.</div>';
   }
 }
+
+// Continuous real-time cycle tracker for currency derivatives
+async function trackLiveCurrencySnapshot() {
+  const container = document.getElementById('currency-table-body');
+  if (!container) return; // Guard clause if context container is absent
+
+  try {
+    const response = await fetch('http://localhost:5000/api/currency-snapshot');
+    if (!response.ok) throw new Error('API request breakdown');
+    
+    const contracts = await response.json();
+    
+    if (!Array.isArray(contracts) || contracts.length === 0) {
+      container.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px 0;">
+            Waiting for live currency ticks...
+          </td>
+        </tr>`;
+      return;
+    }
+
+    container.innerHTML = contracts.map(item => {
+      const pct = parseFloat(item.change_percent) || 0;
+      const scoreClass = pct >= 0 ? 'up' : 'down';
+      const sign = pct >= 0 ? '+' : '';
+
+      return `
+        <tr>
+            <td class="col-contracts">
+                <span class="font-highlight">${item.contract}</span>
+            </td>
+
+            <td class="price-heavy">
+                ${item.ltp.toFixed(4)}
+            </td>
+
+            <td class="${item.change >= 0 ? 'up' : 'down'}">
+                ${item.change >= 0 ? '+' : ''}${item.change.toFixed(4)}
+            </td>
+
+            <td class="${item.change_percent >= 0 ? 'up' : 'down'}">
+                ${item.change_percent.toFixed(2)}%
+            </td>
+
+            <td class="font-medium">
+                ${item.previousClose.toFixed(4)}
+            </td>
+
+            <td class="font-medium">
+                ${item.marketState}
+            </td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (error) {
+    console.error('Failed to loop active currency stream:', error);
+  }
+}
+
+// Register inside DOM setup hook
+document.addEventListener('DOMContentLoaded', () => {
+  trackLiveCurrencySnapshot();
+  // Set up execution thread interval sync
+  setInterval(trackLiveCurrencySnapshot, 5000);
+});
