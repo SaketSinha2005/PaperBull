@@ -276,6 +276,41 @@ app.get('/api/52week-low', async (req, res) => {
 //     }
 // });
 
+async function fetchLiveCurrencySnapshot() {
+    const symbols = [
+        { yahoo: "USDINR=X", name: "USD/INR Spot" },
+        { yahoo: "EURINR=X", name: "EUR/INR Spot" },
+        { yahoo: "GBPINR=X", name: "GBP/INR Spot" },
+        { yahoo: "JPYINR=X", name: "JPY/INR Spot" }
+    ];
+
+    const quotes = await Promise.all(
+        symbols.map(s => yahooFinance.quote(s.yahoo))
+    );
+
+    return quotes.map((q, i) => ({
+        contract: symbols[i].name,
+
+        ltp: q.regularMarketPrice,
+        previousClose: q.regularMarketPreviousClose,
+        change: q.regularMarketChange,
+        change_percent: q.regularMarketChangePercent,
+
+        marketState: q.marketState,
+        timestamp: q.regularMarketTime
+    }));
+}
+
+app.get('/api/currency-snapshot', async (req, res) => {
+    try {
+        const data = await fetchLiveCurrencySnapshot();
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /api/currency-snapshot:', error.message);
+        res.status(500).json({ error: 'Failed to fetch currency snapshot' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`NSE Backend service running on http://localhost:${PORT}`);
 });
