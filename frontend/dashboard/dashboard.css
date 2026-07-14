@@ -601,54 +601,6 @@ table { width: 100%; border-collapse: collapse; }
   font-weight: 500;
 }
 
-.intraday-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.intraday-item {
-  background: var(--bg-card-alt);
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  padding: 18px;
-}
-
-.intraday-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
-  margin-bottom: 14px;
-  background: #fdfdfd;
-  color: #1a1a1a;
-}
-
-.logo-ramco-sys { color: #1a4f8a; }
-.logo-relaxo { color: #d62828; }
-.logo-ramco-ind { color: #1a4f8a; }
-.logo-pix { color: #2a3a8a; }
-
-.intraday-name {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-}
-
-.intraday-price {
-  font-size: 17px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.intraday-change {
-  font-size: 13px;
-  font-weight: 600;
-}
 
 .sectors-table { font-size: 14px; }
 
