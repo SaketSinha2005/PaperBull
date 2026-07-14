@@ -601,6 +601,76 @@ table { width: 100%; border-collapse: collapse; }
   font-weight: 500;
 }
 
+/* ─────────────────────────  Currency Table  ───────────────────────── */
+.currency-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.currency-table thead th {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 12px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Align the Contracts column to the left, keep numbers on the right */
+.currency-table thead th.col-contracts,
+.currency-table tbody td.col-contracts {
+  text-align: left;
+  padding-left: 4px;
+}
+
+.currency-table tbody td {
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+  text-align: right;
+}
+
+.currency-table tbody tr:last-child td {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+/* Typography Enhancements */
+.currency-table .font-highlight {
+  font-weight: 600;
+  color: #7fa6f5; /* Light blue accent for contract symbols */
+}
+
+.currency-table .price-heavy {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.currency-table .font-medium {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.currency-table .sub-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: none;
+  margin-top: 2px;
+}
+
+/* Row hover highlight */
+.currency-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.currency-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
 
 .sectors-table { font-size: 14px; }
 
