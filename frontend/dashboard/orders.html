@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Place Order - PaperBull</title>
-  <link rel="stylesheet" href="dashboard.css">
-  <link rel="stylesheet" href="orders.css">
+  <link rel="stylesheet" href="dashboard.css?v=3">
+  <link rel="stylesheet" href="orders.css?v=3">
 </head>
 <body>
 
@@ -17,7 +17,6 @@
         <nav class="nav-links">
           <a href="index.html" class="nav-link">Dashboard</a>
           <a href="stocks.html" class="nav-link">Stocks</a>
-          <a href="#" class="nav-link">Options</a>
           <a href="watchlist.html" class="nav-link">Watchlist</a>
           <a href="orders.html" class="nav-link active">Orders</a>
           <a href="portfolio.html" class="nav-link">Portfolio</a>
@@ -110,22 +109,16 @@
 
       <div class="order-field">
         <label class="order-label">Order Type <span class="order-info-dot" title="How this order will be executed">?</span></label>
-        <div class="order-type-tabs">
-          <button class="order-type-tab active" data-type="Market">Market</button>
-          <button class="order-type-tab" data-type="Limit">Limit</button>
-          <button class="order-type-tab" data-type="SL Limit">SL Limit</button>
-          <button class="order-type-tab" data-type="SL Market">SL Market</button>
+        <div class="order-type-tabs two-col">
+          <button class="order-type-tab active" data-order-type="Market" id="orderTypeTabMarket">Market</button>
+          <button class="order-type-tab" data-order-type="Trigger" id="orderTypeTabTrigger">Trigger Price</button>
         </div>
       </div>
 
-      <div class="order-field order-field-price" id="orderLimitPriceField" hidden>
-        <label class="order-label">Limit Price</label>
-        <input type="number" id="orderLimitPrice" class="order-input" placeholder="0.00" min="0" step="0.05">
-      </div>
-
-      <div class="order-field order-field-price" id="orderTriggerPriceField" hidden>
-        <label class="order-label">Trigger Price</label>
-        <input type="number" id="orderTriggerPrice" class="order-input" placeholder="0.00" min="0" step="0.05">
+      <div class="order-field" id="triggerPriceField" hidden>
+        <label class="order-label">Trigger Price <span class="order-info-dot" title="Order executes automatically once the market price reaches this level">?</span></label>
+        <input type="number" id="orderTriggerPrice" class="order-input" placeholder="e.g. 2500.00" min="0" step="0.05">
+        <div class="order-sub-note">Stays pending and fires automatically the moment the price reaches this level.</div>
       </div>
 
       <div class="order-field">
@@ -153,6 +146,14 @@
 
     <!-- ============ RIGHT: chart + depth + about + AI ============ -->
     <div class="orders-right">
+
+      <section class="card order-pending-card" id="pendingOrdersCard" hidden>
+        <div class="order-pending-head">
+          <h3>Pending Trigger Orders</h3>
+          <span class="order-pending-count" id="pendingOrdersCount">0</span>
+        </div>
+        <div id="pendingOrdersList" class="order-pending-list"></div>
+      </section>
 
       <section class="card order-chart-card">
         <div class="order-chart-head">
@@ -261,7 +262,6 @@
         <div class="order-modal-row"><span>Quantity</span><span id="modalQuantity">10 Shares</span></div>
         <div class="order-modal-row"><span>Product Type</span><span id="modalProductType">Delivery</span></div>
         <div class="order-modal-row" id="modalOrderPriceRow"><span>Order Price</span><span id="modalOrderPrice">Market Price</span></div>
-        <div class="order-modal-row" id="modalTriggerPriceRow" hidden><span>Trigger Price</span><span id="modalTriggerPrice">&#8212;</span></div>
         <div class="order-modal-row"><span>Estimated Price</span><span id="modalEstimatedPrice">&#8377;0.00</span></div>
         <div class="order-modal-row order-modal-row-total"><span>Estimated Amount</span><span id="modalEstimatedAmount">&#8377;0.00</span></div>
       </div>
@@ -289,7 +289,7 @@
     <span id="orderToastText">Order placed successfully</span>
   </div>
 
-  <script src="dashboard.js"></script>
-  <script src="orders.js"></script>
+  <script src="dashboard.js?v=3"></script>
+  <script src="orders.js?v=3"></script>
 </body>
 </html>
