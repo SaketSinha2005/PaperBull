@@ -289,7 +289,8 @@
   gap: 6px;
 }
 
-.order-product-tabs {
+.order-product-tabs,
+.order-type-tabs.two-col {
   grid-template-columns: repeat(2, 1fr);
 }
 
@@ -316,6 +317,16 @@
   background: rgba(98, 177, 191, 0.12);
   border-color: var(--green);
   color: var(--green);
+}
+
+.order-type-fixed {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--green);
+  background: rgba(98, 177, 191, 0.12);
+  color: var(--green);
+  font-size: 12.5px;
+  font-weight: 700;
 }
 
 .order-input {
@@ -541,6 +552,114 @@
 
 .order-chart-loading[hidden] {
   display: none;
+}
+
+/* ---------------- Pending trigger orders ---------------- */
+
+.order-pending-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-pending-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.order-pending-head h3 {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.order-pending-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--green);
+  background: rgba(98, 177, 191, 0.12);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.order-pending-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.order-pending-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.order-pending-row:last-child {
+  border-bottom: none;
+}
+
+.order-pending-side {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.order-pending-side.buy {
+  color: var(--green);
+  background: rgba(98, 177, 191, 0.12);
+}
+
+.order-pending-side.sell {
+  color: var(--red);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.order-pending-main {
+  min-width: 0;
+}
+
+.order-pending-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.order-pending-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.order-pending-trigger {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.order-pending-cancel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--red);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.order-pending-cancel:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--red);
 }
 
 /* ---------------- Market depth ---------------- */

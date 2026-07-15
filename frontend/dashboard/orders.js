@@ -22,7 +22,7 @@
   let allStocks = [];          // cached /api/stocks list, for the search box
   let currentStock = null;     // full /api/stock/:symbol payload for the selected stock
   let currentSide = "buy";     // 'buy' | 'sell'
-  let currentOrderType = "Market";
+  let currentOrderType = "Market"; // 'Market' | 'Trigger'
   let currentProduct = "Delivery";
   let currentRange = "1D";
   let depthLevels = [];        // simulated market depth, regenerated per stock
@@ -160,6 +160,7 @@
       loadChart();
       updateAvailability();
       recomputeEstimate();
+      startLiveUpdates();
 
       const url = new URL(window.location.href);
       url.searchParams.set("symbol", stock.symbol);
@@ -169,6 +170,76 @@
       showError("Couldn't load that stock. Is the backend running on " + MARKET_API_BASE + "?");
     }
   }
+
+  // ---------------- live (real-time) updates ----------------
+  // Keeps the chart, price, change%, depth, and AI insight on the Orders
+  // page ticking on their own — across every time range — instead of only
+  // ever refreshing once when a stock/range is first selected.
+  const LIVE_REFRESH_MS = 5000;
+  let liveTimer = null;
+  let liveSymbolInFlight = null;
+
+  function startLiveUpdates() {
+    stopLiveUpdates();
+    liveTimer = setInterval(() => {
+      if (document.hidden || !currentStock) return;
+      refreshLiveData();
+    }, LIVE_REFRESH_MS);
+  }
+
+  function stopLiveUpdates() {
+    if (liveTimer) {
+      clearInterval(liveTimer);
+      liveTimer = null;
+    }
+  }
+
+  async function refreshLiveData() {
+    if (!currentStock) return;
+    const symbol = currentStock.symbol;
+    liveSymbolInFlight = symbol;
+
+    try {
+      const [stockRes, seriesRes] = await Promise.all([
+        fetch(`${MARKET_API_BASE}/api/stock/${encodeURIComponent(symbol)}`),
+        fetch(`${MARKET_API_BASE}/api/series/${encodeURIComponent(symbol)}?range=${currentRange}`),
+      ]);
+
+      // If the user switched/cleared the stock while this request was in
+      // flight, discard the (now stale) response instead of applying it.
+      if (!currentStock || currentStock.symbol !== symbol || liveSymbolInFlight !== symbol) return;
+
+      if (stockRes.ok) {
+        const stock = await stockRes.json();
+        if (stock && !stock.error) {
+          currentStock = stock;
+          applySelectedStock();
+          generateDepth();
+          renderDepth();
+          renderAIInsight();
+          updateAvailability();
+          recomputeEstimate();
+        }
+      }
+
+      if (seriesRes.ok) {
+        const data = await seriesRes.json();
+        if (Array.isArray(data.points)) {
+          chartPoints = data.points;
+          drawChart();
+        }
+      }
+    } catch (err) {
+      console.error("Live refresh failed:", err);
+    }
+  }
+
+  // Resume promptly when the tab regains focus instead of waiting for the
+  // next tick, and pause silently (via the document.hidden check above)
+  // while it's backgrounded so we're not hammering the API for nothing.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && currentStock) refreshLiveData();
+  });
 
   function applySelectedStock() {
     if (!currentStock) return;
@@ -417,12 +488,7 @@
   // ---------------- order form logic ----------------
   function recomputeEstimate() {
     const qty = Math.max(0, parseInt($("orderQty").value, 10) || 0);
-    let price = currentStock ? toNum(currentStock.price) : 0;
-
-    if (currentOrderType === "Limit" || currentOrderType === "SL Limit") {
-      const limitVal = parseFloat($("orderLimitPrice").value);
-      if (!Number.isNaN(limitVal) && limitVal > 0) price = limitVal;
-    }
+    const price = currentStock ? toNum(currentStock.price) : 0;
 
     const amount = qty * price;
     $("orderEstimateAmount").textContent = fmtINR(amount);
@@ -439,14 +505,10 @@
 
   function setOrderType(type) {
     currentOrderType = type;
-    document.querySelectorAll(".order-type-tab").forEach((t) => t.classList.toggle("active", t.getAttribute("data-type") === type));
-
-    const needsLimit = type === "Limit" || type === "SL Limit";
-    const needsTrigger = type === "SL Limit" || type === "SL Market";
-
-    $("orderLimitPriceField").hidden = !needsLimit;
-    $("orderTriggerPriceField").hidden = !needsTrigger;
-    recomputeEstimate();
+    $("orderTypeTabMarket").classList.toggle("active", type === "Market");
+    $("orderTypeTabTrigger").classList.toggle("active", type === "Trigger");
+    $("triggerPriceField").hidden = type !== "Trigger";
+    clearError();
   }
 
   function setProduct(product) {
@@ -455,6 +517,8 @@
   }
 
   // ---------------- review modal ----------------
+  let reviewTriggerPrice = null;
+
   function openReviewModal() {
     clearError();
 
@@ -469,22 +533,6 @@
       return;
     }
 
-    if ((currentOrderType === "Limit" || currentOrderType === "SL Limit")) {
-      const limitVal = parseFloat($("orderLimitPrice").value);
-      if (Number.isNaN(limitVal) || limitVal <= 0) {
-        showError("Enter a valid limit price.");
-        return;
-      }
-    }
-
-    if ((currentOrderType === "SL Limit" || currentOrderType === "SL Market")) {
-      const triggerVal = parseFloat($("orderTriggerPrice").value);
-      if (Number.isNaN(triggerVal) || triggerVal <= 0) {
-        showError("Enter a valid trigger price.");
-        return;
-      }
-    }
-
     if (currentSide === "sell") {
       const portfolio = getPortfolio();
       const held = portfolio.holdings[currentStock.symbol];
@@ -494,6 +542,16 @@
         return;
       }
     }
+
+    let triggerPrice = null;
+    if (currentOrderType === "Trigger") {
+      triggerPrice = parseFloat($("orderTriggerPrice").value);
+      if (!triggerPrice || triggerPrice <= 0) {
+        showError("Enter a valid trigger price.");
+        return;
+      }
+    }
+    reviewTriggerPrice = triggerPrice;
 
     const { price, amount } = recomputeEstimate();
     const s = currentStock;
@@ -508,38 +566,32 @@
     txEl.textContent = currentSide === "buy" ? "Buy" : "Sell";
     txEl.className = "order-modal-transaction " + currentSide;
 
-    $("modalOrderType").textContent = currentOrderType + " Order";
     $("modalQuantity").textContent = `${qty} Shares`;
     $("modalProductType").textContent = currentProduct;
 
     const priceRowLabel = $("modalOrderPriceRow").querySelector("span");
-    if (currentOrderType === "Market") {
+
+    if (currentOrderType === "Trigger") {
+      $("modalOrderType").textContent = "Trigger Price Order";
+      priceRowLabel.textContent = "Trigger Price";
+      $("modalOrderPrice").textContent = fmtINR(triggerPrice);
+      $("modalEstimatedPrice").textContent = fmtINR(price);
+      $("orderModalNoteText").textContent =
+        `This order stays pending and executes automatically at the market price the moment ${s.symbol} reaches ${fmtINR(triggerPrice)}.`;
+    } else {
+      $("modalOrderType").textContent = "Market Order";
       priceRowLabel.textContent = "Order Price";
       $("modalOrderPrice").textContent = "Market Price";
-    } else {
-      priceRowLabel.textContent = "Order Price";
-      $("modalOrderPrice").textContent = fmtINR(price);
+      $("modalEstimatedPrice").textContent = fmtINR(price);
+      $("orderModalNoteText").textContent = "Market orders are executed at the best available price in the market.";
     }
 
-    if (currentOrderType === "SL Limit" || currentOrderType === "SL Market") {
-      $("modalTriggerPriceRow").hidden = false;
-      $("modalTriggerPrice").textContent = fmtINR(parseFloat($("orderTriggerPrice").value) || 0);
-    } else {
-      $("modalTriggerPriceRow").hidden = true;
-    }
-
-    $("modalEstimatedPrice").textContent = fmtINR(price);
     $("modalEstimatedAmount").textContent = fmtINR(amount);
 
-    $("orderModalNoteText").textContent =
-      currentOrderType === "Market"
-        ? "Market orders are executed at the best available price in the market."
-        : currentOrderType === "Limit"
-        ? "Limit orders execute only at your specified price or better, and may not fill immediately."
-        : "Stop-loss orders trigger a Market/Limit order once the trigger price is reached.";
-
     const placeBtn = $("orderModalPlace");
-    placeBtn.textContent = currentSide === "buy" ? "Place Order" : "Place Sell Order";
+    placeBtn.textContent = currentOrderType === "Trigger"
+      ? "Place Trigger Order"
+      : (currentSide === "buy" ? "Place Order" : "Place Sell Order");
     placeBtn.classList.toggle("sell", currentSide === "sell");
 
     $("orderModalOverlay").classList.add("open");
@@ -552,6 +604,30 @@
   function placeOrder() {
     const { qty, price, amount } = recomputeEstimate();
     const s = currentStock;
+
+    if (currentOrderType === "Trigger") {
+      if (!window.PaperBullOrders) {
+        showError("Trigger orders aren't available right now. Please reload the page.");
+        return;
+      }
+      const direction = reviewTriggerPrice >= price ? "above" : "below";
+      window.PaperBullOrders.addPendingOrder({
+        symbol: s.symbol,
+        name: s.name,
+        side: currentSide,
+        qty,
+        product: currentProduct,
+        triggerPrice: reviewTriggerPrice,
+        direction,
+      });
+
+      closeReviewModal();
+      showToast(`Trigger order placed for ${qty} share${qty === 1 ? "" : "s"} of ${s.symbol} at ${fmtINR(reviewTriggerPrice)}`);
+      $("orderTriggerPrice").value = "";
+      renderPendingOrders();
+      return;
+    }
+
     const portfolio = getPortfolio();
 
     if (currentSide === "buy") {
@@ -635,6 +711,48 @@
     }
   }
 
+  // ---------------- pending trigger orders ----------------
+  function renderPendingOrders() {
+    const card = $("pendingOrdersCard");
+    const list = $("pendingOrdersList");
+    const countEl = $("pendingOrdersCount");
+    if (!card || !list || !window.PaperBullOrders) return;
+
+    const pending = window.PaperBullOrders.getPendingOrders();
+
+    if (!pending.length) {
+      card.hidden = true;
+      return;
+    }
+
+    card.hidden = false;
+    countEl.textContent = pending.length;
+
+    list.innerHTML = pending
+      .map(
+        (o) => `
+        <div class="order-pending-row" data-id="${o.id}">
+          <span class="order-pending-side ${o.side}">${o.side === "buy" ? "Buy" : "Sell"}</span>
+          <div class="order-pending-main">
+            <div class="order-pending-name">${o.name || o.symbol}</div>
+            <div class="order-pending-sub">${o.symbol} · ${o.qty} share${o.qty === 1 ? "" : "s"} · ${o.product || "Delivery"}</div>
+          </div>
+          <span class="order-pending-trigger">Trigger: ${fmtINR(o.triggerPrice)}</span>
+          <button class="order-pending-cancel" data-cancel="${o.id}">Cancel</button>
+        </div>`
+      )
+      .join("");
+
+    list.querySelectorAll("[data-cancel]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        window.PaperBullOrders.cancelPendingOrder(btn.getAttribute("data-cancel"));
+        renderPendingOrders();
+      });
+    });
+  }
+
+  window.addEventListener("paperbull:pending-orders-changed", renderPendingOrders);
+
   // ---------------- wire up ----------------
   function init() {
     loadStockList();
@@ -642,15 +760,18 @@
     $("sideTabBuy").addEventListener("click", () => setSide("buy"));
     $("sideTabSell").addEventListener("click", () => setSide("sell"));
 
-    document.querySelectorAll(".order-type-tab").forEach((tab) =>
-      tab.addEventListener("click", () => setOrderType(tab.getAttribute("data-type")))
-    );
     document.querySelectorAll(".order-product-tab").forEach((tab) =>
       tab.addEventListener("click", () => setProduct(tab.getAttribute("data-product")))
     );
 
+    document.querySelectorAll(".order-type-tab").forEach((tab) =>
+      tab.addEventListener("click", () => setOrderType(tab.getAttribute("data-order-type")))
+    );
+    $("orderTriggerPrice").addEventListener("input", clearError);
+
+    renderPendingOrders();
+
     $("orderQty").addEventListener("input", recomputeEstimate);
-    $("orderLimitPrice").addEventListener("input", recomputeEstimate);
 
     $("orderStockSearch").addEventListener("input", (e) => renderSearchResults(e.target.value));
     $("orderStockSearch").addEventListener("focus", (e) => renderSearchResults(e.target.value));
@@ -663,6 +784,7 @@
 
     $("orderSelectedRemove").addEventListener("click", () => {
       currentStock = null;
+      stopLiveUpdates();
       $("orderSelectedStock").style.opacity = "0.4";
       $("orderSelectedName").textContent = "No stock selected";
       $("orderSelectedSub").textContent = "Search above to select a stock";
