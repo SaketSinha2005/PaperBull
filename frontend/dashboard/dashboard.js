@@ -73,71 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(updateHeaderTicker, 1000);
 });
 
-const WATCHLIST_KEY = 'paperbull_watchlist';
-
-function getStoredWatchlist() {
-  try {
-    const raw = localStorage.getItem(WATCHLIST_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (err) {
-    return [];
-  }
-}
-
-function saveStoredWatchlist(list) {
-  try {
-    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
-  } catch (err) {}
-}
-
-function renderUserWatchlist() {
-  const body = document.getElementById('watchlistBody');
-  if (!body) return;
-
-  document.querySelectorAll('.watchlist-row-user').forEach((row) => row.remove());
-
-  const list = getStoredWatchlist();
-
-  list.forEach((s) => {
-    const row = document.createElement('tr');
-    row.className = 'watchlist-row-user';
-    row.style.cursor = 'pointer';
-    const changeClass = s.up ? 'up' : 'down';
-    const initial = (s.symbol || s.name || '?').trim().charAt(0).toUpperCase();
-
-    row.innerHTML = `
-      <td class="col-w-company">
-        <div class="row-co">
-          <div class="w-logo">${initial}</div>
-          <span>${s.name || s.symbol}</span>
-        </div>
-      </td>
-      <td class="col-w-trend"><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="2,20 20,18 40,15 60,17 80,10 98,8" /></svg></td>
-      <td class="col-w-price"><div class="w-price">₹${s.price || '—'}</div></td>
-      <td class="col-w-change"><div class="w-change ${changeClass}">${s.change || ''} ${s.pct || ''}</div></td>
-      <td class="col-w-vol"><div class="w-vol">—</div></td>
-      <td class="col-w-perf">
-        <div class="perf-slider">
-          <span class="perf-label">L</span>
-          <div class="perf-track"><div class="perf-dot" style="left: 50%"></div></div>
-          <span class="perf-label">H</span>
-        </div>
-      </td>
-    `;
-
-    row.addEventListener('click', (e) => {
-      window.location.href = `stocks.html?symbol=${encodeURIComponent(s.symbol || '')}&name=${encodeURIComponent(s.name || '')}&price=${encodeURIComponent(s.price || '')}&change=${encodeURIComponent(s.change || '')}&pct=${encodeURIComponent(s.pct || '')}&up=${s.up}`;
-    });
-
-    body.prepend(row);
-  });
-
-  const header = document.getElementById('watchlistCompanyHeader');
-  if (header) {
-    const total = 5 + list.length;
-    header.childNodes[0].textContent = `Company (${total}) `;
-  }
-}
+// NOTE: the Watchlist page's rendering, search, and add/remove logic now
+// lives in watchlist.js, which supports multiple named, user-created
+// watchlists (like playlists) instead of a single flat list.
 
 function getPortfolioSummary() {
   let portfolio = {};
@@ -205,8 +143,6 @@ function renderProfileDropdown() {
 }
 
 document.addEventListener('DOMContentLoaded', renderProfileDropdown);
-
-document.addEventListener('DOMContentLoaded', renderUserWatchlist);
 
 function renderPortfolioPage() {
   const valueEl = document.getElementById('portfolioTotalValue');
@@ -310,6 +246,235 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 250);
   }, { passive: true });
 });
+
+// ============================================================
+// Trigger ("Trigger Price") pending-order engine
+// ------------------------------------------------------------
+// This used to live only inside orders.js, which only runs while the
+// user is actually on the Orders page — so a pending trigger order
+// only ever got checked (and only ever seemed to "appear" as executed)
+// when that page happened to be open. dashboard.js is loaded on every
+// dashboard page (index, watchlist, portfolio, orders), so putting the
+// engine here means a trigger order keeps getting checked consistently
+// no matter which page the user is on, instead of only sometimes.
+// ============================================================
+(function () {
+  const MARKET_API_BASE = 'http://localhost:5000';
+  const PORTFOLIO_KEY = 'paperbull_portfolio';
+  const USER_KEY = 'paperbull_user';
+  const ORDERS_KEY = 'paperbull_orders';
+  const PENDING_KEY = 'paperbull_pending_orders';
+  const DEFAULT_STARTING_CAPITAL = 100000;
+  const CHECK_INTERVAL_MS = 5000;
+
+  function getPortfolio() {
+    let portfolio = {};
+    try { portfolio = JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || '{}'); } catch (err) {}
+    let user = {};
+    try { user = JSON.parse(localStorage.getItem(USER_KEY) || '{}'); } catch (err) {}
+
+    return {
+      startingCapital: typeof portfolio.startingCapital === 'number' ? portfolio.startingCapital : DEFAULT_STARTING_CAPITAL,
+      moneyAvailable: typeof portfolio.moneyAvailable === 'number'
+        ? portfolio.moneyAvailable
+        : (typeof user.balance === 'number' ? user.balance : DEFAULT_STARTING_CAPITAL),
+      totalInvested: typeof portfolio.totalInvested === 'number' ? portfolio.totalInvested : 0,
+      stocksBought: typeof portfolio.stocksBought === 'number' ? portfolio.stocksBought : 0,
+      profitLoss: typeof portfolio.profitLoss === 'number' ? portfolio.profitLoss : 0,
+      profitLossPct: typeof portfolio.profitLossPct === 'number' ? portfolio.profitLossPct : 0,
+      holdings: portfolio.holdings && typeof portfolio.holdings === 'object' ? portfolio.holdings : {},
+    };
+  }
+
+  function savePortfolio(portfolio) {
+    localStorage.setItem(PORTFOLIO_KEY, JSON.stringify(portfolio));
+    try {
+      const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
+      user.balance = portfolio.moneyAvailable;
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    } catch (err) {}
+  }
+
+  function logOrder(order) {
+    let orders = [];
+    try { orders = JSON.parse(localStorage.getItem(ORDERS_KEY) || '[]'); } catch (err) {}
+    orders.unshift(order);
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders.slice(0, 200)));
+  }
+
+  function getPendingOrders() {
+    try {
+      const list = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+      return Array.isArray(list) ? list : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function savePendingOrders(list) {
+    localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+    window.dispatchEvent(new CustomEvent('paperbull:pending-orders-changed'));
+  }
+
+  function addPendingOrder(order) {
+    const list = getPendingOrders();
+    const withId = Object.assign(
+      { id: 'trg_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8), createdAt: new Date().toISOString() },
+      order
+    );
+    list.unshift(withId);
+    savePendingOrders(list);
+    return withId;
+  }
+
+  function cancelPendingOrder(id) {
+    savePendingOrders(getPendingOrders().filter((o) => o.id !== id));
+  }
+
+  function executeOrder(order, execPrice) {
+    const portfolio = getPortfolio();
+    const qty = order.qty;
+    let executed = true;
+    let failReason = '';
+
+    if (order.side === 'buy') {
+      const amount = qty * execPrice;
+      if (amount > portfolio.moneyAvailable) {
+        executed = false;
+        failReason = 'insufficient funds';
+      } else {
+        const held = portfolio.holdings[order.symbol] || { qty: 0, avgPrice: 0 };
+        const newQty = held.qty + qty;
+        const newAvg = ((held.avgPrice * held.qty) + (execPrice * qty)) / newQty;
+        portfolio.holdings[order.symbol] = { qty: newQty, avgPrice: Math.round(newAvg * 100) / 100, name: order.name };
+        portfolio.moneyAvailable -= amount;
+        portfolio.totalInvested += amount;
+        portfolio.stocksBought += qty;
+      }
+    } else {
+      const held = portfolio.holdings[order.symbol] || { qty: 0, avgPrice: 0 };
+      if (qty > held.qty) {
+        executed = false;
+        failReason = 'holding no longer sufficient';
+      } else {
+        const amount = qty * execPrice;
+        const realized = (execPrice - held.avgPrice) * qty;
+        portfolio.moneyAvailable += amount;
+        portfolio.totalInvested = Math.max(0, portfolio.totalInvested - held.avgPrice * qty);
+        portfolio.profitLoss += realized;
+        portfolio.profitLossPct = portfolio.startingCapital ? (portfolio.profitLoss / portfolio.startingCapital) * 100 : 0;
+        const remainingQty = held.qty - qty;
+        if (remainingQty <= 0) delete portfolio.holdings[order.symbol];
+        else portfolio.holdings[order.symbol] = { qty: remainingQty, avgPrice: held.avgPrice, name: order.name };
+      }
+    }
+
+    if (executed) {
+      savePortfolio(portfolio);
+      logOrder({
+        symbol: order.symbol,
+        name: order.name,
+        side: order.side,
+        orderType: 'Trigger Price',
+        product: order.product,
+        qty,
+        price: execPrice,
+        amount: qty * execPrice,
+        triggerPrice: order.triggerPrice,
+        timestamp: new Date().toISOString(),
+      });
+      if (typeof renderProfileDropdown === 'function') renderProfileDropdown();
+    }
+
+    return { executed, failReason };
+  }
+
+  function showGlobalToast(text) {
+    let toast = document.getElementById('paperbullGlobalToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'paperbullGlobalToast';
+      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1c2733;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,0.35);z-index:9999;opacity:0;transition:opacity .25s ease, transform .25s ease;max-width:min(420px, 90vw);text-align:center;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(-50%) translateY(0)';
+    });
+    clearTimeout(showGlobalToast._t);
+    showGlobalToast._t = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 4200);
+  }
+
+  let checking = false;
+
+  async function checkPendingOrders() {
+    if (checking) return;
+    const pending = getPendingOrders();
+    if (!pending.length) return;
+    checking = true;
+
+    try {
+      const bySymbol = {};
+      pending.forEach((o) => { (bySymbol[o.symbol] = bySymbol[o.symbol] || []).push(o); });
+
+      const remaining = [];
+      const toastMessages = [];
+
+      for (const symbol of Object.keys(bySymbol)) {
+        let price = null;
+        try {
+          const res = await fetch(`${MARKET_API_BASE}/api/stock/${encodeURIComponent(symbol)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && !data.error) price = Number(data.price);
+          }
+        } catch (err) {}
+
+        for (const order of bySymbol[symbol]) {
+          if (price == null || Number.isNaN(price)) {
+            remaining.push(order);
+            continue;
+          }
+          const reached = order.direction === 'above' ? price >= order.triggerPrice : price <= order.triggerPrice;
+          if (!reached) {
+            remaining.push(order);
+            continue;
+          }
+          const { executed, failReason } = executeOrder(order, price);
+          if (executed) {
+            toastMessages.push(`Trigger hit: ${order.side === 'buy' ? 'Buy' : 'Sell'} order for ${order.qty} share${order.qty === 1 ? '' : 's'} of ${order.symbol} executed at ₹${price.toFixed(2)}`);
+          } else {
+            toastMessages.push(`Trigger order for ${order.symbol} could not be executed (${failReason}) and was cancelled.`);
+          }
+        }
+      }
+
+      if (remaining.length !== pending.length) savePendingOrders(remaining);
+      toastMessages.forEach((msg) => showGlobalToast(msg));
+    } finally {
+      checking = false;
+    }
+  }
+
+  window.PaperBullOrders = {
+    getPendingOrders,
+    addPendingOrder,
+    cancelPendingOrder,
+    checkPendingOrders,
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    checkPendingOrders();
+    setInterval(checkPendingOrders, CHECK_INTERVAL_MS);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) checkPendingOrders();
+    });
+  });
+})();
 
 const DASHBOARD_API_BASE = 'http://localhost:5000';
 const DASHBOARD_API_ENDPOINT = `${DASHBOARD_API_BASE}/api/gainers`;

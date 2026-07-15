@@ -1184,6 +1184,344 @@ table { width: 100%; border-collapse: collapse; }
   .watchlist-table .col-w-perf { display: none; }
 }
 
+/* ─────────────────────────  Watchlist: dynamic tabs (playlists)  ───────────────────────── */
+
+.watchlist-tabs { flex-wrap: wrap; row-gap: 10px; }
+
+.watchlist-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding-bottom: 12px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.watchlist-tab-btn:hover { color: var(--text-primary); }
+
+.watchlist-tab-btn.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--green);
+}
+
+.watchlist-tab-btn .tab-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-pill);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.watchlist-tab-btn.active .tab-count { color: var(--green); }
+
+.btn-delete-list { color: var(--red); }
+.btn-delete-list svg { color: var(--red); }
+
+/* ─────────────────────────  Watchlist: add-stock panel  ───────────────────────── */
+
+.watchlist-add-panel {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.watchlist-add-panel-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.watchlist-add-panel-search svg { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; }
+
+.watchlist-add-panel-search input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.watchlist-add-panel-search input::placeholder { color: var(--text-muted); }
+
+.watchlist-add-panel-close {
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.watchlist-add-panel-close:hover { color: var(--text-primary); }
+
+.watchlist-add-panel-results {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.watchlist-add-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 6px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.watchlist-add-result:hover { background: var(--bg-pill); }
+
+.watchlist-add-result-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+.watchlist-add-result-sym { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+.watchlist-add-result-btn {
+  background: var(--green-bg);
+  color: var(--green);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.watchlist-add-result-btn:hover { opacity: 0.85; }
+
+.watchlist-add-result-btn.added {
+  background: var(--bg-pill);
+  color: var(--text-muted);
+}
+
+.watchlist-add-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ─────────────────────────  Watchlist: remove-row / empty states  ───────────────────────── */
+
+.col-w-remove { width: 36px; text-align: right; }
+
+.watchlist-row-remove {
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.watchlist-row-remove svg { width: 14px; height: 14px; }
+
+.watchlist-row-remove[hidden] { display: none; }
+
+.watchlist-row-remove:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+/* ─────────────────────────  Watchlist: new-watchlist modal  ───────────────────────── */
+
+.wl-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 10, 0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.wl-modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.wl-modal {
+  width: min(92vw, 400px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.2s ease;
+}
+
+.wl-modal-overlay.open .wl-modal {
+  transform: translateY(0) scale(1);
+}
+
+.wl-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.wl-modal-head h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.wl-modal-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.wl-modal-close:hover {
+  background: var(--bg-pill);
+  color: var(--text-primary);
+}
+
+.wl-modal-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+}
+
+.wl-modal-field {
+  margin-bottom: 8px;
+}
+
+.wl-modal-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.wl-modal-input {
+  width: 100%;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.wl-modal-input:focus {
+  border-color: var(--green);
+}
+
+.wl-modal-error {
+  font-size: 12.5px;
+  color: var(--red);
+  min-height: 18px;
+  margin-top: 6px;
+}
+
+.wl-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.wl-modal-cancel,
+.wl-modal-create {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.wl-modal-cancel {
+  background: var(--bg-pill);
+  color: var(--text-primary);
+}
+
+.wl-modal-cancel:hover { background: var(--border-color); }
+
+.wl-modal-create {
+  background: var(--green);
+  color: #04120c;
+  border: none;
+}
+
+.wl-modal-create:hover { opacity: 0.9; }
+
+.wl-modal-create:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.watchlist-empty,
+.watchlist-none {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.watchlist-empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.watchlist-empty-text {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+/* ─────────────────────────  Shared toast  ───────────────────────── */
+
+.pb-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translate(-50%, 16px);
+  background: var(--bg-pill-active);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 200;
+}
+
+.pb-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 /* ─────────────────────────  Portfolio page  ───────────────────────── */
 
 .portfolio-header-card { padding: 26px;background:transparent;
@@ -1358,4 +1696,117 @@ box-shadow:none; }
 .portfolio-bg > *{
     position: relative;
     z-index: 1;
+}
+
+/* ─────────────────────────  Portfolio: Holdings  ───────────────────────── */
+
+.holdings-card,
+.transactions-card {
+  margin-top: 20px;
+}
+
+.holdings-count,
+.transactions-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.holdings-table {
+  width: 100%;
+  font-size: 14px;
+  border-collapse: collapse;
+}
+
+.holdings-table thead th {
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 0 14px 14px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.holdings-table thead th.col-h-company { text-align: left; }
+
+.holdings-table tbody td {
+  padding: 16px 14px 16px 0;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+  text-align: right;
+}
+
+.holdings-table tbody td.col-h-company { text-align: left; }
+
+.holdings-table tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
+.holdings-table tbody tr:hover { background-color: var(--bg-card-alt); }
+.holdings-table tbody tr:last-child td { border-bottom: none; padding-bottom: 4px; }
+
+.holdings-table .row-co { display: flex; align-items: center; gap: 12px; }
+.holdings-table .w-logo { background: var(--bg-pill); color: var(--text-primary); }
+
+.h-name { font-weight: 700; font-size: 14px; color: var(--text-primary); }
+.h-symbol { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.h-pl { font-weight: 700; font-size: 14px; }
+.h-pl-pct { font-size: 12px; font-weight: 600; margin-top: 2px; }
+
+/* ─────────────────────────  Portfolio: Buy/Sell activity  ───────────────────────── */
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tx-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto auto 120px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.tx-row:last-child { border-bottom: none; padding-bottom: 4px; }
+
+.tx-side-badge {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 7px;
+}
+
+.tx-side-badge.buy { background: var(--green-bg); color: var(--green); }
+.tx-side-badge.sell { background: var(--red-bg); color: var(--red); }
+
+.tx-name { font-weight: 700; font-size: 13.5px; color: var(--text-primary); }
+.tx-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.tx-qty { font-size: 13px; color: var(--text-secondary); white-space: nowrap; text-align: right; }
+
+.tx-amount { font-weight: 700; font-size: 14px; text-align: right; white-space: nowrap; }
+
+.tx-time { font-size: 12px; color: var(--text-muted); text-align: right; white-space: nowrap; }
+
+@media (max-width: 800px) {
+  .holdings-table thead th:nth-child(4),
+  .holdings-table tbody td:nth-child(4),
+  .holdings-table thead th:nth-child(5),
+  .holdings-table tbody td:nth-child(5) { display: none; }
+
+  .tx-row {
+    grid-template-columns: 56px 1fr;
+    grid-template-areas:
+      "badge main"
+      "qty   amount"
+      "time  time";
+    row-gap: 6px;
+  }
+  .tx-side-badge { grid-area: badge; }
+  .tx-main { grid-area: main; }
+  .tx-qty { grid-area: qty; text-align: left; }
+  .tx-amount { grid-area: amount; }
+  .tx-time { grid-area: time; text-align: left; }
 }
