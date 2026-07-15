@@ -103,6 +103,25 @@ async function fetchHistory(symbol, rangeDays = 5) {
   return { meta: result.meta };
 }
 
+// Small set of recent intraday closes, used to draw the little live sparkline
+// next to each row on the Stocks list (replaces the old fake/deterministic
+// squiggle that had nothing to do with the stock's actual price).
+async function fetchSparkline(symbol) {
+  try {
+    const url =
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
+      `?range=1d&interval=15m&includePrePost=false`;
+    const resp = await fetch(url, { headers: YF_HEADERS });
+    if (!resp.ok) return [];
+    const json = await resp.json();
+    const result = json?.chart?.result?.[0];
+    const closes = result?.indicators?.quote?.[0]?.close || [];
+    return closes.filter((c) => c != null).map((c) => Math.round(c * 100) / 100);
+  } catch (err) {
+    return [];
+  }
+}
+
 async function fetchIntraday(symbol) {
   const url =
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
@@ -130,8 +149,11 @@ const RANGE_PRESETS = {
   "1W": { range: "5d", interval: "30m" },
   "1M": { range: "1mo", interval: "1d" },
   "3M": { range: "3mo", interval: "1d" },
+  "6M": { range: "6mo", interval: "1d" },
   "1Y": { range: "1y", interval: "1wk" },
+  "3Y": { range: "3y", interval: "1wk" },
   "5Y": { range: "5y", interval: "1mo" },
+  "MAX": { range: "max", interval: "1mo" },
 };
 
 async function fetchSeries(symbol, presetKey) {
@@ -155,7 +177,7 @@ async function fetchSeries(symbol, presetKey) {
   const isIntraday = presetKey === "1D" || presetKey === "1W";
   const fmt = new Intl.DateTimeFormat("en-IN", isIntraday
     ? { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false, ...(presetKey === "1W" ? { day: "2-digit", month: "short" } : {}) }
-    : { timeZone: tz, day: "2-digit", month: "short", year: presetKey === "1Y" || presetKey === "5Y" ? "2-digit" : undefined });
+    : { timeZone: tz, day: "2-digit", month: "short", year: ["1Y", "3Y", "5Y", "MAX"].includes(presetKey) ? "2-digit" : undefined });
 
   let points = timestamps
     .map((ts, i) => ({ t: ts, close: closes[i], label: fmt.format(new Date(ts * 1000)) }))
@@ -338,6 +360,13 @@ router.get("/stocks", async (_req, res) => {
         marketCapCr,
       };
     }).filter(Boolean);
+
+    // Pull today's intraday closes for each stock in parallel so the list's
+    // sparkline column reflects real price action instead of a fake squiggle.
+    const sparkLists = await Promise.all(
+      results.map((s) => fetchSparkline(yfSymbol(s.symbol)))
+    );
+    results.forEach((s, i) => { s.spark = sparkLists[i]; });
 
     res.json(results);
   } catch (err) {

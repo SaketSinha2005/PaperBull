@@ -202,7 +202,7 @@ const indices = [
   { name: "FINNIFTY", value: "26,770.55", change: "+34.15", pct: "+0.13%", up: true },
 ];
 
-const navTabs = ["Dashboard", "Stocks", "Options", "Watchlist", "Orders", "Portfolio"];
+const navTabs = ["Dashboard", "Stocks", "Watchlist", "Orders", "Portfolio"];
 
 const stock = {
   name: "Tata Consultancy Services",
@@ -351,20 +351,6 @@ function toggleWatchlist(entry) {
 const stockTabs = ["Overview", "Technicals", "News", "Events", "F&O"];
 const timeRanges = ["1D", "1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "Max"];
 
-const perfSeries = [
-  { m: "May '25", v: 2100 },
-  { m: "Jun '25", v: 2350 },
-  { m: "Jul '25", v: 2680 },
-  { m: "Aug '25", v: 2900 },
-  { m: "Sep '25", v: 3100 },
-  { m: "Oct '25", v: 3020 },
-  { m: "Nov '25", v: 3450 },
-  { m: "Dec '25", v: 3900 },
-  { m: "Jan '26", v: 4400 },
-  { m: "Feb '26", v: 4100 },
-  { m: "Mar '26", v: 3600 },
-];
-
 const fundamentals = [
   { label: "Market Cap", value: "₹12,90,904 Cr" },
   { label: "ROE", value: "57.98%" },
@@ -461,7 +447,6 @@ const PRICE_RANGE_MAX = 10000;
 const navRoutes = {
   Dashboard: "index.html",
   Stocks: "#",
-  Options: "#",
   Watchlist: "watchlist.html",
   Orders: "orders.html",
   Portfolio: "portfolio.html",
@@ -730,28 +715,99 @@ function MiniStat({ label, value }) {
 
 function PerformanceChart() {
   const [range, setRange] = useState("1Y");
+  const [series, setSeries] = useState({ points: [], is_up: true });
+  const [status, setStatus] = useState("loading"); // loading | ready | error | empty
 
-  const { path, area, points } = useMemo(() => {
+  useEffect(() => {
+    let cancelled = false;
+
+    // `silent` refreshes update the series in place without flashing the
+    // loading/empty/error state — used for the live polling below so the
+    // chart doesn't flicker every few seconds.
+    const load = (silent) => {
+      if (!silent) setStatus("loading");
+      fetch(`${STOCKS_API_BASE}/api/series/${encodeURIComponent(stock.symbol)}?range=${range}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (cancelled) return;
+          if (Array.isArray(data.points) && data.points.length > 1) {
+            setSeries(data);
+            setStatus("ready");
+          } else if (!silent) {
+            setSeries({ points: [], is_up: true });
+            setStatus("empty");
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          if (!silent) {
+            setSeries({ points: [], is_up: true });
+            setStatus("error");
+          }
+        });
+    };
+
+    load(false);
+
+    // Keep the chart ticking with live prices while it's on screen — not
+    // just on the first load or when the range is changed — so intraday
+    // ranges (1D/1W) stay current while the market is open.
+    const LIVE_REFRESH_MS = 5000;
+    const timer = setInterval(() => {
+      if (document.hidden) return;
+      load(true);
+    }, LIVE_REFRESH_MS);
+
+    const onVisibility = () => {
+      if (!document.hidden) load(true);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [range, stock.symbol]);
+
+  const { path, area, points, yLabels, xLabels } = useMemo(() => {
     const w = 900;
     const h = 260;
     const padL = 10;
     const padR = 10;
     const padT = 10;
     const padB = 30;
-    const vals = perfSeries.map((p) => p.v);
+    const seriesPoints = series.points || [];
+    if (seriesPoints.length < 2) {
+      return { path: "", area: "", points: [], yLabels: [], xLabels: [] };
+    }
+    const vals = seriesPoints.map((p) => p.close);
     const min = Math.min(...vals);
     const max = Math.max(...vals);
-    const dx = (w - padL - padR) / (perfSeries.length - 1);
+    const span = max - min || 1;
+    const dx = (w - padL - padR) / (seriesPoints.length - 1);
     const dy = h - padT - padB;
-    const points = perfSeries.map((p, i) => {
+    const points = seriesPoints.map((p, i) => {
       const x = padL + i * dx;
-      const y = padT + dy - ((p.v - min) / (max - min)) * dy;
+      const y = padT + dy - ((p.close - min) / span) * dy;
       return { x, y, ...p };
     });
     const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
     const area = `${path} L${points[points.length - 1].x},${h - padB} L${points[0].x},${h - padB} Z`;
-    return { path, area, points };
-  }, []);
+
+    const yLabels = [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => max - t * span);
+
+    const xCount = Math.min(6, points.length);
+    const xLabels = Array.from({ length: xCount }, (_, i) => {
+      const idx = xCount === 1 ? 0 : Math.round((i / (xCount - 1)) * (points.length - 1));
+      return points[idx].label;
+    });
+
+    return { path, area, points, yLabels, xLabels };
+  }, [series]);
+
+  const up = series.is_up !== false;
+  const lineColor = up ? "var(--green)" : "var(--red)";
 
   return (
     <div className="card">
@@ -762,7 +818,7 @@ function PerformanceChart() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
         {timeRanges.map((r) => (
           <button
             key={r}
@@ -775,37 +831,39 @@ function PerformanceChart() {
       </div>
 
       <div className="relative">
-        <svg viewBox="0 0 900 260" className="w-full h-[260px]" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--green)" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="var(--green)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[0.2, 0.4, 0.6, 0.8].map((t) => (
-            <line key={t} x1="0" x2="900" y1={10 + t * 220} y2={10 + t * 220} stroke="#ffffff" strokeOpacity="0.04" />
-          ))}
-          <path d={area} fill="url(#perfGrad)" />
-          <path d={path} fill="none" stroke="var(--green)" strokeWidth="2" />
-          <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="5" fill="var(--green)" />
-          <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="10" fill="var(--green)" fillOpacity="0.2" />
-        </svg>
-        <div className="absolute right-0 top-0 h-[230px] flex flex-col justify-between text-[11px] text-[var(--text-secondary)] pr-1">
-          <span>4,800</span>
-          <span>4,200</span>
-          <span>3,600</span>
-          <span>3,000</span>
-          <span>2,400</span>
-          <span>1,800</span>
-        </div>
-        <div className="flex justify-between mt-2 text-[11px] text-[var(--text-secondary)] px-1">
-          <span>May '25</span>
-          <span>Jul '25</span>
-          <span>Sep '25</span>
-          <span>Nov '25</span>
-          <span>Jan '26</span>
-          <span>Mar '26</span>
-        </div>
+        {status !== "ready" ? (
+          <div className="w-full h-[260px] flex items-center justify-center text-[13px] text-[var(--text-muted)]">
+            {status === "loading" ? "Loading chart\u2026" : "Chart data isn't available for this range right now."}
+          </div>
+        ) : (
+          <Fragment>
+            <svg viewBox="0 0 900 260" className="w-full h-[260px]" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={lineColor} stopOpacity="0.35" />
+                  <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {[0.2, 0.4, 0.6, 0.8].map((t) => (
+                <line key={t} x1="0" x2="900" y1={10 + t * 220} y2={10 + t * 220} stroke="#ffffff" strokeOpacity="0.04" />
+              ))}
+              <path d={area} fill="url(#perfGrad)" />
+              <path d={path} fill="none" stroke={lineColor} strokeWidth="2" />
+              <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="5" fill={lineColor} />
+              <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="10" fill={lineColor} fillOpacity="0.2" />
+            </svg>
+            <div className="absolute right-0 top-0 h-[230px] flex flex-col justify-between text-[11px] text-[var(--text-secondary)] pr-1">
+              {yLabels.map((v, i) => (
+                <span key={i}>{formatINR(v, 0)}</span>
+              ))}
+            </div>
+            <div className="flex justify-between mt-2 text-[11px] text-[var(--text-secondary)] px-1">
+              {xLabels.map((l, i) => (
+                <span key={i}>{l}</span>
+              ))}
+            </div>
+          </Fragment>
+        )}
       </div>
 
       <div className="grid grid-cols-5 gap-6 mt-8 pt-6 border-t border-[var(--border-soft)]">
@@ -1402,8 +1460,24 @@ function StockListRow({ item, onSelect }) {
   const ourPrice = getOurPrice(item.symbol, item.price);
   const initial = (item.symbol || item.name || "?").trim().charAt(0).toUpperCase();
 
-  // deterministic-looking little sparkline so every row doesn't look identical
+  // Real intraday sparkline from today's closes (sent by the backend as
+  // item.spark). Falls back to the old deterministic squiggle only if live
+  // data hasn't come back yet (e.g. first paint, or the API call failed).
   const sparkPoints = useMemo(() => {
+    const closes = Array.isArray(item.spark) ? item.spark.filter((c) => typeof c === "number") : [];
+    if (closes.length >= 2) {
+      const min = Math.min(...closes);
+      const max = Math.max(...closes);
+      const span = max - min || 1;
+      return closes
+        .map((c, i) => {
+          const x = (i / (closes.length - 1)) * 100;
+          const y = 23 - ((c - min) / span) * 21;
+          return `${x.toFixed(2)},${y.toFixed(1)}`;
+        })
+        .join(" ");
+    }
+
     let seed = 0;
     for (let i = 0; i < item.symbol.length; i++) seed = (seed * 17 + item.symbol.charCodeAt(i)) % 97;
     const pts = [];
@@ -1415,7 +1489,7 @@ function StockListRow({ item, onSelect }) {
       pts.push(`${(i / 7) * 100},${(24 - v).toFixed(1)}`);
     }
     return pts.join(" ");
-  }, [item.symbol, up]);
+  }, [item.symbol, item.spark, up]);
 
   const handleAdd = (e) => {
     e.stopPropagation();
@@ -1481,17 +1555,40 @@ function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoadState("loading");
-    fetchStocksList()
-      .then((data) => {
-        if (cancelled) return;
-        setStocksData(Array.isArray(data) ? data : []);
-        setLoadState("ready");
-      })
-      .catch(() => {
-        if (!cancelled) setLoadState("error");
-      });
-    return () => { cancelled = true; };
+
+    const load = (silent) => {
+      if (!silent) setLoadState("loading");
+      fetchStocksList()
+        .then((data) => {
+          if (cancelled) return;
+          setStocksData(Array.isArray(data) ? data : []);
+          setLoadState("ready");
+        })
+        .catch(() => {
+          if (!cancelled && !silent) setLoadState("error");
+        });
+    };
+
+    load(false);
+
+    // Keep prices and sparklines live while this page is open instead of
+    // only ever fetching once on mount.
+    const LIVE_REFRESH_MS = 15000;
+    const timer = setInterval(() => {
+      if (document.hidden) return;
+      load(true);
+    }, LIVE_REFRESH_MS);
+
+    const onVisibility = () => {
+      if (!document.hidden) load(true);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const clearAll = () => {
@@ -1558,7 +1655,6 @@ function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
                 <SearchIcon />
                 <input placeholder="Search stocks, e.g. Reliance, TCS..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
-              <button className="stocks-toolbar-btn"><SlidersIcon className="w-4 h-4" /></button>
               <button className="stocks-toolbar-btn text-btn" onClick={clearAll}>Clear All</button>
             </div>
 
