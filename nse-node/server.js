@@ -1,3 +1,5 @@
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -311,6 +313,21 @@ app.get('/api/currency-snapshot', async (req, res) => {
     }
 });
 
+// Add this near the top with your other imports
+const { getIPOData, updateIPOData } = require('./agents/ipoAgent');
+
+// Add this alongside your other endpoints (e.g., below /api/currency-snapshot)
+app.get('/api/ipos', (req, res) => {
+    try {
+        const data = getIPOData();
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /api/ipos:', error.message);
+        res.status(500).json({ error: 'Failed to fetch IPO data' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`NSE Backend service running on http://localhost:${PORT}`);
+    updateIPOData();
 });
