@@ -830,3 +830,61 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set up execution thread interval sync
   setInterval(trackLiveCurrencySnapshot, 5000);
 });
+
+// Fetch and render IPOs from the Agent API
+async function fetchUpcomingIPOs() {
+  const container = document.getElementById('ipo-table-body');
+  if (!container) return; // Exit if not on the dashboard
+
+  try {
+    const response = await fetch('http://localhost:5000/api/ipos');
+    if (!response.ok) throw new Error('Failed to fetch IPOs');
+    
+    const ipos = await response.json();
+    
+    if (!Array.isArray(ipos) || ipos.length === 0) {
+      container.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+            No upcoming IPOs found right now.
+          </td>
+        </tr>`;
+      return;
+    }
+
+    container.innerHTML = ipos.map(ipo => {
+      // Determine color classes
+      const gmpClass = ipo.gmp.includes('-') ? 'down' : (ipo.gmp !== '0%' ? 'up' : '');
+      const statusClass = ipo.status.toLowerCase() === 'listed' ? 'status-listed' : 'status-upcoming';
+
+      return `
+        <tr>
+          <td class="col-ipo-company">${ipo.company}</td>
+          <td class="col-ipo-status">
+            <span class="status-badge ${statusClass}">${ipo.status}</span>
+          </td>
+          <td class="col-ipo-date">${ipo.expected}</td>
+          <td class="col-ipo-gmp ${gmpClass}">${ipo.gmp}</td>
+          <td class="col-ipo-insight">${ipo.why_it_matters}</td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (error) {
+    console.error('Error fetching IPO data:', error);
+    container.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; color: var(--red); padding: 20px 0;">
+          Failed to connect to IPO AI Agent.
+        </td>
+      </tr>`;
+  }
+}
+
+// Hook it into the DOM load alongside your other trackers
+document.addEventListener('DOMContentLoaded', () => {
+  fetchUpcomingIPOs();
+  
+  // Optionally refresh IPOs every 5 minutes so users don't have to reload
+  setInterval(fetchUpcomingIPOs, 5 * 60 * 1000); 
+});
