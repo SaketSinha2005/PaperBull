@@ -169,65 +169,25 @@
 
       <section class="card">
         <div class="card-header">
-          <h2>Sectors trending today</h2>
-          <a href="#" class="link-arrow">See all sectors <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <h2>Upcoming IPOs</h2>
+          <a href="#" class="link-arrow">See all IPOs <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         </div>
-        <table class="sectors-table">
+        
+        <table class="ipo-table">
           <thead>
             <tr>
-              <th class="col-sector">Sector</th>
-              <th class="col-gl">Gainers/Losers</th>
-              <th class="col-change">1D price change</th>
+              <th class="col-ipo-company">Company</th>
+              <th class="col-ipo-status">Status</th>
+              <th class="col-ipo-date">Expected/Listed</th>
+              <th class="col-ipo-gmp">GMP</th>
+              <th class="col-ipo-insight">Why it matters</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="ipo-table-body">
             <tr>
-              <td class="col-sector"><div class="sector-name"><span class="sector-icon">▦</span>Rubber Products</div></td>
-              <td class="col-gl">
-                <div class="gl-numbers"><span class="gl-up">5</span><span class="gl-down">5</span></div>
-                <div class="gl-bar"><div class="gl-bar-up" style="width: 50%"></div><div class="gl-bar-down" style="width: 50%"></div></div>
+              <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                Agent is fetching the latest IPO data...
               </td>
-              <td class="col-change up">+6.67%</td>
-            </tr>
-            <tr>
-              <td class="col-sector"><div class="sector-name"><span class="sector-icon">👟</span>Footwear</div></td>
-              <td class="col-gl">
-                <div class="gl-numbers"><span class="gl-up">10</span><span class="gl-down">4</span></div>
-                <div class="gl-bar"><div class="gl-bar-up" style="width: 71%"></div><div class="gl-bar-down" style="width: 29%"></div></div>
-              </td>
-              <td class="col-change up">+3.98%</td>
-            </tr>
-            <tr>
-              <td class="col-sector"><div class="sector-name"><span class="sector-icon">✈</span>Aviation</div></td>
-              <td class="col-gl">
-                <div class="gl-numbers"><span class="gl-up">5</span><span class="gl-down">2</span></div>
-                <div class="gl-bar"><div class="gl-bar-up" style="width: 71%"></div><div class="gl-bar-down" style="width: 29%"></div></div>
-              </td>
-              <td class="col-change up">+3.05%</td>
-            </tr>
-            <tr>
-              <td class="col-sector"><div class="sector-name"><span class="sector-icon">🚚</span>Logistics</div></td>
-              <td class="col-gl">
-                <div class="gl-numbers"><span class="gl-up">26</span><span class="gl-down">59</span></div>
-                <div class="gl-bar"><div class="gl-bar-up" style="width: 31%"></div><div class="gl-bar-down" style="width: 69%"></div></div>
-              </td>
-              <td class="col-change down">-1.73%</td>
-            </tr>
-            <tr>
-              <td class="col-sector"><div class="sector-name"><span class="sector-icon">🛒</span>Auto Retail</div></td>
-              <td class="col-gl">
-                <div class="gl-numbers"><span class="gl-up">3</span><span class="gl-down">4</span></div>
-                <div class="gl-bar"><div class="gl-bar-up" style="width: 43%"></div><div class="gl-bar-down" style="width: 57%"></div></div>
-              </td>
-              <td class="col-change down">-1.78%</td>
-            </tr>
-            <tr>
-              <td class="col-sector"><div class="sector-name"><span class="sector-icon">♻</span>Waste Management</div></td>
-              <td class="col-gl">
-                <div class="gl-numbers"><span class="gl-up">4</span><span class="gl-down">12</span></div>
-                <div class="gl-bar"><div class="gl-bar-up" style="width: 25%"></div><div class="gl-bar-down" style="width: 75%"></div></div>
-              </td>
-              <td class="col-change down">-3.25%</td>
             </tr>
           </tbody>
         </table>

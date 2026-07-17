@@ -2028,3 +2028,47 @@ box-shadow:none; }
   flex: 0 0 100px;
   text-align: right;
 }
+
+/* ─────────────────────────  IPO Table  ───────────────────────── */
+.ipo-table { 
+  width: 100%; 
+  font-size: 14px; 
+  table-layout: fixed; 
+}
+
+.ipo-table thead th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 0 0 14px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.ipo-table tbody td {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+}
+
+.ipo-table tbody tr:last-child td {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+/* Column Widths & Typography */
+.ipo-table .col-ipo-company { font-weight: 700; color: var(--text-primary); width: 18%; }
+.ipo-table .col-ipo-status { color: var(--text-secondary); width: 14%; }
+.ipo-table .col-ipo-date { color: var(--text-secondary); width: 18%; }
+.ipo-table .col-ipo-gmp { font-weight: 700; width: 12%; }
+.ipo-table .col-ipo-insight { color: var(--text-primary); width: 38%; font-size: 13.5px; line-height: 1.4; }
+
+/* Status Badges (Optional nice touch for 'Listed' vs 'Upcoming') */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.status-upcoming { background: rgba(91, 141, 239, 0.12); color: var(--blue); }
+.status-listed { background: var(--green-bg); color: var(--green); }
