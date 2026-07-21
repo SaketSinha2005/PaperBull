@@ -33,13 +33,20 @@ CREATE TABLE IF NOT EXISTS users (
 -- One row per (user, symbol) currently held. Qty/avg_price are kept up to
 -- date server-side every time a buy/sell order is placed.
 CREATE TABLE IF NOT EXISTS holdings (
-    id          SERIAL PRIMARY KEY,
-    user_id     INTEGER         NOT NULL,
-    symbol      VARCHAR(50)     NOT NULL,
-    name        VARCHAR(150),
-    qty         NUMERIC(15, 4)  NOT NULL DEFAULT 0,
-    avg_price   NUMERIC(15, 2)  NOT NULL DEFAULT 0,
-    updated_at  TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    id                  SERIAL PRIMARY KEY,
+    user_id             INTEGER         NOT NULL,
+    symbol              VARCHAR(50)     NOT NULL,
+    name                VARCHAR(150),
+    qty                 NUMERIC(15, 4)  NOT NULL DEFAULT 0,
+    avg_price           NUMERIC(15, 2)  NOT NULL DEFAULT 0,
+    -- Portion of `qty` that was bought today as Intraday (MIS). Tracked
+    -- separately so the server-side square-off job (see server.js) knows
+    -- exactly what to force-sell once the market closes, independent of
+    -- whether anyone still has the app open in a browser.
+    intraday_qty        NUMERIC(15, 4)  NOT NULL DEFAULT 0,
+    intraday_avg_price  NUMERIC(15, 2)  NOT NULL DEFAULT 0,
+    intraday_date        DATE,
+    updated_at          TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_holdings_user
         FOREIGN KEY (user_id)
@@ -48,6 +55,11 @@ CREATE TABLE IF NOT EXISTS holdings (
 
     CONSTRAINT uq_holdings_user_symbol UNIQUE (user_id, symbol)
 );
+
+-- Migrations for databases created before intraday tracking existed.
+ALTER TABLE holdings ADD COLUMN IF NOT EXISTS intraday_qty NUMERIC(15, 4) NOT NULL DEFAULT 0;
+ALTER TABLE holdings ADD COLUMN IF NOT EXISTS intraday_avg_price NUMERIC(15, 2) NOT NULL DEFAULT 0;
+ALTER TABLE holdings ADD COLUMN IF NOT EXISTS intraday_date DATE;
 
 -- Append-only log of every executed buy/sell, used to power the
 -- "Recent Buy / Sell Activity" list and to recompute realized P&L.

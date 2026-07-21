@@ -192,6 +192,32 @@
 
     todayEl.textContent = `${todayUp ? "+" : "-"}${fmtINR(todayGain)} (${todayUp ? "+" : "-"}${Math.abs(todayPct).toFixed(2)}%)`;
     todayEl.style.color = todayUp ? "var(--green)" : "var(--red)";
+
+    // The "Day Change" stat card near the top of the page reads
+    // portfolio.dayChange/dayChangePct out of localStorage, but nothing
+    // ever wrote real values there — it always showed ₹0.00 (0.00%).
+    // We already have the real, live numbers right here (same todayGain /
+    // todayPct that "Today's Gain" below uses), so drive that card from
+    // them directly, and persist them so any other page reading
+    // paperbull_portfolio picks up the same figures instead of stale zeros.
+    const topDayChangeEl = $("portfolioDayChange");
+    const topDayChangePctEl = $("portfolioDayChangePct");
+    if (topDayChangeEl && topDayChangePctEl) {
+      topDayChangeEl.textContent = fmtINR(todayGain);
+      topDayChangeEl.classList.remove("up", "down");
+      topDayChangeEl.classList.add(todayUp ? "up" : "down");
+
+      topDayChangePctEl.textContent = `${todayUp ? "+" : "-"}${Math.abs(todayPct).toFixed(2)}%`;
+      topDayChangePctEl.classList.remove("up", "down");
+      topDayChangePctEl.classList.add(todayUp ? "up" : "down");
+    }
+
+    try {
+      const portfolio = JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || "{}");
+      portfolio.dayChange = todayGain;
+      portfolio.dayChangePct = todayPct;
+      localStorage.setItem(PORTFOLIO_KEY, JSON.stringify(portfolio));
+    } catch (err) {}
   }
 
   function updateEmptyState(hasHoldings) {
