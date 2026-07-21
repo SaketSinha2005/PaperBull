@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const { getMarketStatus, getTodayIso } = require("../marketHours");
 
 // Look up the `users` row (which holds the trading account) from an email
 // address. Returns null if there's no account for that email yet.
@@ -25,12 +26,14 @@ router.get("/:email", async (req, res) => {
       return res.status(404).json({ success: false, message: "No account found for this email." });
     }
 
+    const todayIso = getTodayIso();
     const holdingsResult = await pool.query(
-      `SELECT symbol, name, qty, avg_price
+      `SELECT symbol, name, qty, avg_price,
+              CASE WHEN intraday_date = $2 THEN intraday_qty ELSE 0 END AS intraday_qty
          FROM holdings
         WHERE user_id = $1 AND qty > 0
         ORDER BY updated_at DESC`,
-      [user.id],
+      [user.id, todayIso],
     );
 
     const ordersResult = await pool.query(
@@ -55,6 +58,7 @@ router.get("/:email", async (req, res) => {
         name: h.name,
         qty: Number(h.qty),
         avgPrice: Number(h.avg_price),
+        intradayQty: Number(h.intraday_qty), // still-open Intraday (MIS) qty, due for auto square-off at close
       })),
       orders: ordersResult.rows.map((o) => ({
         symbol: o.symbol,
@@ -111,10 +115,23 @@ router.post("/order", async (req, res) => {
     const user = userResult.rows[0];
 
     const holdingResult = await client.query(
-      `SELECT id, qty, avg_price FROM holdings WHERE user_id = $1 AND symbol = $2 FOR UPDATE`,
+      `SELECT id, qty, avg_price, intraday_qty, intraday_avg_price, intraday_date
+         FROM holdings WHERE user_id = $1 AND symbol = $2 FOR UPDATE`,
       [user.id, symbol],
     );
-    const held = holdingResult.rows[0] || { qty: 0, avg_price: 0 };
+    const held = holdingResult.rows[0] || { qty: 0, avg_price: 0, intraday_qty: 0, intraday_avg_price: 0, intraday_date: null };
+
+    // Intraday (MIS) buys/sells are tracked in a separate qty/avg-price
+    // bucket (reset daily) so the auto square-off job knows exactly what's
+    // still open when the market closes, without touching Delivery holdings.
+    const todayKey = getMarketStatus().dateKey;
+    const todayIso = getTodayIso();
+    const heldIntradayDateKey = held.intraday_date
+      ? `${held.intraday_date.getUTCFullYear()}-${held.intraday_date.getUTCMonth() + 1}-${held.intraday_date.getUTCDate()}`
+      : null;
+    const intradayStillToday = heldIntradayDateKey === todayKey;
+    let intradayQty = intradayStillToday ? Number(held.intraday_qty) : 0;
+    let intradayAvgPrice = intradayStillToday ? Number(held.intraday_avg_price) : 0;
 
     let realizedPnl = 0;
     let newBalance = Number(user.virtual_balance);
@@ -128,15 +145,28 @@ router.post("/order", async (req, res) => {
       const newAvg = (Number(held.avg_price) * Number(held.qty) + priceNum * qtyNum) / newQty;
       newBalance -= amount;
 
+      if (product === "Intraday (MIS)") {
+        const newIntradayQty = intradayQty + qtyNum;
+        intradayAvgPrice = (intradayAvgPrice * intradayQty + priceNum * qtyNum) / newIntradayQty;
+        intradayQty = newIntradayQty;
+      }
+
       if (holdingResult.rows.length) {
         await client.query(
-          `UPDATE holdings SET qty = $1, avg_price = $2, name = $3, updated_at = NOW() WHERE id = $4`,
-          [newQty, Math.round(newAvg * 100) / 100, name || symbol, held.id],
+          `UPDATE holdings
+              SET qty = $1, avg_price = $2, name = $3,
+                  intraday_qty = $4, intraday_avg_price = $5, intraday_date = $6,
+                  updated_at = NOW()
+            WHERE id = $7`,
+          [newQty, Math.round(newAvg * 100) / 100, name || symbol,
+            intradayQty, Math.round(intradayAvgPrice * 100) / 100, todayIso, held.id],
         );
       } else {
         await client.query(
-          `INSERT INTO holdings (user_id, symbol, name, qty, avg_price) VALUES ($1, $2, $3, $4, $5)`,
-          [user.id, symbol, name || symbol, newQty, Math.round(newAvg * 100) / 100],
+          `INSERT INTO holdings (user_id, symbol, name, qty, avg_price, intraday_qty, intraday_avg_price, intraday_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [user.id, symbol, name || symbol, newQty, Math.round(newAvg * 100) / 100,
+            intradayQty, Math.round(intradayAvgPrice * 100) / 100, intradayQty > 0 ? todayIso : null],
         );
       }
     } else {
@@ -147,13 +177,16 @@ router.post("/order", async (req, res) => {
       realizedPnl = (priceNum - Number(held.avg_price)) * qtyNum;
       newBalance += amount;
       const remainingQty = Number(held.qty) - qtyNum;
+      const remainingIntradayQty = Math.max(0, intradayQty - qtyNum);
 
       if (remainingQty <= 0) {
         await client.query(`DELETE FROM holdings WHERE id = $1`, [held.id]);
       } else {
         await client.query(
-          `UPDATE holdings SET qty = $1, updated_at = NOW() WHERE id = $2`,
-          [remainingQty, held.id],
+          `UPDATE holdings
+              SET qty = $1, intraday_qty = $2, intraday_date = $3, updated_at = NOW()
+            WHERE id = $4`,
+          [remainingQty, remainingIntradayQty, remainingIntradayQty > 0 ? todayIso : null, held.id],
         );
       }
     }
