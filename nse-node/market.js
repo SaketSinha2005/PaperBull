@@ -62,6 +62,56 @@ const CURATED_UNIVERSE = [
   { symbol: "VEDL",       name: "Vedanta",                     sector: "Metals & Mining",        cap: "Mid" },
 ];
 
+// ---------------------------------------------------------------------
+// Index membership, used by the "Indices" filter on the All Stocks page.
+// NSE's public equity master list (EQUITY_L.csv) doesn't include index
+// constituents, and there's no other free endpoint in use here that does
+// either, so this is necessarily an approximation:
+//  - Nifty 50 / Bank Nifty / Fin Nifty below are real, hand-maintained
+//    constituent lists (accurate as of writing — NSE reshuffles these
+//    periodically, so treat as indicative rather than authoritative).
+//  - Nifty 100 / Nifty Next 50 / Nifty Midcap 150 / Nifty Smallcap 250
+//    are derived from each stock's market-cap bucket (Large/Mid/Small)
+//    since we don't have the real constituent lists for those.
+// ---------------------------------------------------------------------
+const NIFTY_50_SYMBOLS = new Set([
+  "ADANIENT", "ADANIPORTS", "APOLLOHOSP", "ASIANPAINT", "AXISBANK", "BAJAJ-AUTO", "BAJFINANCE",
+  "BAJAJFINSV", "BEL", "BHARTIARTL", "CIPLA", "COALINDIA", "DRREDDY", "EICHERMOT", "GRASIM",
+  "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDUNILVR", "ICICIBANK",
+  "INDUSINDBK", "INFY", "ITC", "JSWSTEEL", "KOTAKBANK", "LT", "LTIM", "M&M", "MARUTI",
+  "NESTLEIND", "NTPC", "ONGC", "POWERGRID", "RELIANCE", "SBILIFE", "SBIN", "SHRIRAMFIN",
+  "SUNPHARMA", "TATACONSUM", "TATAMOTORS", "TATASTEEL", "TCS", "TECHM", "TITAN", "TRENT",
+  "ULTRACEMCO", "WIPRO",
+]);
+
+const BANK_NIFTY_SYMBOLS = new Set([
+  "HDFCBANK", "ICICIBANK", "SBIN", "KOTAKBANK", "AXISBANK", "INDUSINDBK",
+  "BANKBARODA", "PNB", "IDFCFIRSTB", "AUBANK", "FEDERALBNK", "CANBK",
+]);
+
+const NIFTY_FIN_SERVICE_SYMBOLS = new Set([
+  "HDFCBANK", "ICICIBANK", "SBIN", "KOTAKBANK", "AXISBANK", "BAJFINANCE", "BAJAJFINSV",
+  "HDFCLIFE", "SBILIFE", "SHRIRAMFIN", "CHOLAFIN", "PFC", "RECLTD", "ICICIPRULI",
+  "ICICIGI", "MUTHOOTFIN", "HDFCAMC", "LICHSGFIN", "PNBHOUSING", "JIOFIN",
+]);
+
+function getIndicesForStock(symbol, cap) {
+  const list = [];
+  if (NIFTY_50_SYMBOLS.has(symbol)) list.push("Nifty 50");
+  if (BANK_NIFTY_SYMBOLS.has(symbol)) list.push("Bank Nifty");
+  if (NIFTY_FIN_SERVICE_SYMBOLS.has(symbol)) list.push("Fin Nifty");
+
+  if (cap === "Large") {
+    list.push("Nifty 100");
+    if (!NIFTY_50_SYMBOLS.has(symbol)) list.push("Nifty Next 50");
+  } else if (cap === "Mid") {
+    list.push("Nifty Midcap 150");
+  } else if (cap === "Small") {
+    list.push("Nifty Smallcap 250");
+  }
+  return list;
+}
+
 const yfSymbol = (symbol) => (symbol.includes(".") ? symbol : `${symbol}.NS`);
 
 // ---------------------------------------------------------------------
@@ -562,17 +612,22 @@ async function buildStocksSnapshot() {
       const change = q.regularMarketChange ?? 0;
       const changePct = q.regularMarketChangePercent ?? 0;
       const marketCapCr = q.marketCap ? Math.round(q.marketCap / 1e7) : null;
+      const cap = s.cap || inferCapBucket(q.marketCap);
 
       return {
         symbol: s.symbol,
         name: q.longName || q.shortName || s.name,
         sector: s.sector,
-        cap: s.cap || inferCapBucket(q.marketCap),
+        cap,
         price: Math.round(price * 100) / 100,
         change: Math.round(change * 100) / 100,
         changePct: Math.round(changePct * 100) / 100,
         is_up: change >= 0,
         marketCapCr,
+        weekLow: q.fiftyTwoWeekLow ?? null,
+        weekHigh: q.fiftyTwoWeekHigh ?? null,
+        peRatio: q.trailingPE != null ? Math.round(q.trailingPE * 100) / 100 : null,
+        indices: getIndicesForStock(s.symbol, cap),
         spark: buildQuickSpark(q, change >= 0),
       };
     })
@@ -666,6 +721,7 @@ router.get("/stock/:symbol", async (req, res) => {
       cap: universeEntry ? `${universeEntry.cap} Cap` : null,
       sector: profile.sector || (universeEntry && universeEntry.sector) || null,
       industry: profile.industry || null,
+      indices: getIndicesForStock(rawSymbol, universeEntry ? universeEntry.cap : inferCapBucket(quote.marketCap)),
       price: fmtNumber(price),
       change: `${sign}${change.toFixed(2)}`,
       pct: `(${Math.abs(changePct).toFixed(2)}%)`,
@@ -703,6 +759,73 @@ router.get("/stock/:symbol", async (req, res) => {
   } catch (err) {
     console.error(`Error fetching /api/stock/${rawSymbol}:`, err.message);
     res.status(500).json({ error: "Failed to fetch stock detail" });
+  }
+});
+
+// Real quarterly/yearly revenue & profit (used by the "Financial performance"
+// chart on the stock detail page) straight from Yahoo's income statement
+// modules, instead of the fixed TCS demo numbers that used to show for
+// every stock.
+router.get("/financials/:symbol", async (req, res) => {
+  const rawSymbol = req.params.symbol.toUpperCase();
+  const symbol = yfSymbol(rawSymbol);
+
+  const toCr = (v) => (typeof v === "number" ? Math.round(v / 1e7) : null);
+  const sortByEndDate = (arr) =>
+    [...arr].sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+
+  try {
+    const summary = await yahooFinance.quoteSummary(symbol, {
+      modules: ["incomeStatementHistory", "incomeStatementHistoryQuarterly"],
+    });
+
+    const yearlyRaw = (summary.incomeStatementHistory && summary.incomeStatementHistory.incomeStatementHistory) || [];
+    const quarterlyRaw =
+      (summary.incomeStatementHistoryQuarterly && summary.incomeStatementHistoryQuarterly.incomeStatementHistory) || [];
+
+    const yearly = sortByEndDate(yearlyRaw)
+      .map((entry) => {
+        const d = new Date(entry.endDate);
+        return { q: `FY${String(d.getFullYear()).slice(-2)}`, revenue: toCr(entry.totalRevenue), profit: toCr(entry.netIncome) };
+      })
+      .filter((r) => r.revenue != null && r.profit != null);
+
+    const quarterly = sortByEndDate(quarterlyRaw)
+      .map((entry) => {
+        const d = new Date(entry.endDate);
+        const month = d.toLocaleString("en-IN", { month: "short" });
+        return { q: `${month} '${String(d.getFullYear()).slice(-2)}`, revenue: toCr(entry.totalRevenue), profit: toCr(entry.netIncome) };
+      })
+      .filter((r) => r.revenue != null && r.profit != null);
+
+    res.json({ symbol: rawSymbol, quarterly, yearly });
+  } catch (err) {
+    console.error(`Error fetching /api/financials/${rawSymbol}:`, err.message);
+    res.status(502).json({ error: "Failed to fetch financial performance", quarterly: [], yearly: [] });
+  }
+});
+
+// Real "similar stocks" — other names in the same sector, ranked by market
+// cap — pulled from the same cached universe snapshot /api/stocks uses, so
+// this doesn't cost any extra Yahoo calls on top of that.
+router.get("/similar/:symbol", async (req, res) => {
+  const rawSymbol = req.params.symbol.toUpperCase();
+  try {
+    if (!stocksCache.data.length) {
+      await refreshStocksCache();
+    }
+    const target = stocksCache.data.find((s) => s.symbol === rawSymbol);
+    if (!target || !target.sector) return res.json([]);
+
+    const similar = stocksCache.data
+      .filter((s) => s.symbol !== rawSymbol && s.sector === target.sector)
+      .sort((a, b) => (b.marketCapCr || 0) - (a.marketCapCr || 0))
+      .slice(0, 4);
+
+    res.json(similar);
+  } catch (err) {
+    console.error(`Error fetching /api/similar/${rawSymbol}:`, err.message);
+    res.status(500).json({ error: "Failed to fetch similar stocks" });
   }
 });
 

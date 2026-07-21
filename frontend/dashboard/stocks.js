@@ -548,49 +548,6 @@ const financials = {
   ],
 };
 
-const shareholding = {
-  quarters: ["Mar '25", "Jun '25", "Sep '25", "Dec '25", "Mar '26"],
-  data: {
-    "Mar '26": [
-      { label: "Promoters", pct: 71.77 },
-      { label: "Foreign Institutions", pct: 9.66 },
-      { label: "Other Domestic Institutions", pct: 7.64 },
-      { label: "Retail & Others", pct: 10.93 },
-    ],
-    "Dec '25": [
-      { label: "Promoters", pct: 71.77 },
-      { label: "Foreign Institutions", pct: 10.1 },
-      { label: "Other Domestic Institutions", pct: 7.2 },
-      { label: "Retail & Others", pct: 10.93 },
-    ],
-    "Sep '25": [
-      { label: "Promoters", pct: 71.77 },
-      { label: "Foreign Institutions", pct: 10.44 },
-      { label: "Other Domestic Institutions", pct: 7.0 },
-      { label: "Retail & Others", pct: 10.79 },
-    ],
-    "Jun '25": [
-      { label: "Promoters", pct: 71.77 },
-      { label: "Foreign Institutions", pct: 11.02 },
-      { label: "Other Domestic Institutions", pct: 6.6 },
-      { label: "Retail & Others", pct: 10.61 },
-    ],
-    "Mar '25": [
-      { label: "Promoters", pct: 71.77 },
-      { label: "Foreign Institutions", pct: 11.55 },
-      { label: "Other Domestic Institutions", pct: 6.2 },
-      { label: "Retail & Others", pct: 10.48 },
-    ],
-  },
-};
-
-const similarStocks = [
-  { logo: "HCL", logoBg: "#1E2A3A", name: "HCL Technologies", symbol: "HCLTECH", price: "1,034.20", change: "-37.60", pct: "(3.51%)", up: false, low: 900, high: 1600, current: 1034, mcap: "2,90,904.90", pe: "22.36" },
-  { logo: "W", logoBg: "#3B2A20", name: "Wipro", symbol: "WIPRO", price: "170.13", change: "-0.26", pct: "(0.15%)", up: false, low: 130, high: 320, current: 170, mcap: "1,78,980.49", pe: "18.91" },
-  { logo: "L&T", logoBg: "#1B2340", name: "L&T Technology Services", symbol: "LTTS", price: "3,546.70", change: "+8.70", pct: "(0.25%)", up: true, low: 2400, high: 5800, current: 3546, mcap: "1,04,955.00", pe: "28.14" },
-  { logo: "M", logoBg: "#1F3520", name: "Mphasis", symbol: "MPHASIS", price: "2,126.80", change: "-34.80", pct: "(1.61%)", up: false, low: 1800, high: 3200, current: 2126, mcap: "41,270.44", pe: "21.77" },
-];
-
 const aiSuggestions = [
   "How has TCS performed in the last 1 year?",
   "What are the key strengths of TCS?",
@@ -715,6 +672,68 @@ function ProfileMenu() {
 }
 
 function TopNav({ active, onChange }) {
+  const [navQuery, setNavQuery] = useState("");
+  const [navResults, setNavResults] = useState([]);
+  const [navOpen, setNavOpen] = useState(false);
+  const navBoxRef = useRef(null);
+  const navStocksRef = useRef(null);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (navBoxRef.current && !navBoxRef.current.contains(e.target)) setNavOpen(false);
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
+
+  const ensureNavStocks = () => {
+    if (navStocksRef.current) return Promise.resolve(navStocksRef.current);
+    return fetchStocksList()
+      .then((data) => {
+        navStocksRef.current = Array.isArray(data) ? data : [];
+        return navStocksRef.current;
+      })
+      .catch(() => {
+        navStocksRef.current = [];
+        return navStocksRef.current;
+      });
+  };
+
+  const handleNavInput = (value) => {
+    setNavQuery(value);
+    const q = value.trim().toLowerCase();
+    if (!q) {
+      setNavResults([]);
+      setNavOpen(false);
+      return;
+    }
+    ensureNavStocks().then((stocks) => {
+      const matches = stocks
+        .filter((s) => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q))
+        .slice(0, 8);
+      setNavResults(matches);
+      setNavOpen(true);
+    });
+  };
+
+  const goToStock = (symbol) => {
+    window.location.href = `stocks.html?symbol=${encodeURIComponent(symbol)}`;
+  };
+
+  const handleNavKeyDown = (e) => {
+    if (e.key === "Enter") {
+      const term = navQuery.trim();
+      if (!term) return;
+      if (navResults.length > 0) {
+        goToStock(navResults[0].symbol);
+      } else {
+        window.location.href = `stocks.html?q=${encodeURIComponent(term)}`;
+      }
+    } else if (e.key === "Escape") {
+      setNavOpen(false);
+    }
+  };
+
   return (
     <header className="navbar">
       <div className="navbar-left">
@@ -743,9 +762,38 @@ function TopNav({ active, onChange }) {
         </nav>
       </div>
       <div className="navbar-right">
-        <div className="search-box">
+        <div className="search-box" ref={navBoxRef}>
           <svg viewBox="0 0 24 24" fill="none"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <input type="text" placeholder="Search stocks, options..." />
+          <input
+            type="text"
+            placeholder="Search stocks, options..."
+            value={navQuery}
+            onChange={(e) => handleNavInput(e.target.value)}
+            onFocus={() => {
+              ensureNavStocks();
+              if (navQuery.trim() && navResults.length) setNavOpen(true);
+            }}
+            onKeyDown={handleNavKeyDown}
+          />
+          {navOpen && (
+            <div className="navbar-search-results open">
+              {navResults.length === 0 ? (
+                <div className="navbar-search-empty">No matching stocks</div>
+              ) : (
+                navResults.map((s) => (
+                  <div key={s.symbol} className="navbar-search-result" onClick={() => goToStock(s.symbol)}>
+                    <div>
+                      <div className="navbar-search-result-name">{s.name}</div>
+                      <div className="navbar-search-result-sym">{s.symbol} &middot; NSE</div>
+                    </div>
+                    <div className="navbar-search-result-price">
+                      ₹{Number(s.price || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
         <ProfileMenu />
       </div>
@@ -1212,12 +1260,55 @@ function RowStat({ label, value, positive }) {
 
 function FinancialPerformance() {
   const [mode, setMode] = useState("quarterly");
-  const data = financials[mode];
+  const [live, setLive] = useState(null); // { quarterly, yearly } once fetched
+  const [loadState, setLoadState] = useState("loading"); // loading | ready | unavailable
+  const symbol = stock.symbol;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadState("loading");
+    fetch(`${STOCKS_API_BASE}/api/financials/${encodeURIComponent(symbol)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("request failed"))))
+      .then((data) => {
+        if (cancelled) return;
+        if (data && data.quarterly && data.quarterly.length >= 2 && data.yearly && data.yearly.length >= 2) {
+          setLive(data);
+          setLoadState("ready");
+        } else {
+          setLoadState("unavailable");
+        }
+      })
+      .catch(() => { if (!cancelled) setLoadState("unavailable"); });
+    return () => { cancelled = true; };
+  }, [symbol]);
+
+  const source = live || financials;
+  const data = source[mode];
 
   const { bars, maxV } = useMemo(() => {
     const maxV = Math.max(...data.map((d) => d.revenue)) * 1.1;
     return { bars: data, maxV };
   }, [data]);
+
+  if (loadState === "loading") {
+    return (
+      <div className="card">
+        <h3 className="text-[var(--text-primary)] text-[15px] font-semibold mb-4">Financial performance</h3>
+        <div className="text-[13px] text-[var(--text-secondary)] py-8 text-center">Loading live financials for {symbol}...</div>
+      </div>
+    );
+  }
+
+  if (loadState === "unavailable") {
+    return (
+      <div className="card">
+        <h3 className="text-[var(--text-primary)] text-[15px] font-semibold mb-4">Financial performance</h3>
+        <div className="text-[13px] text-[var(--text-secondary)] py-8 text-center">
+          Financial performance data isn't available for {symbol} right now.
+        </div>
+      </div>
+    );
+  }
 
   const last = data[data.length - 1];
   const prev = data[data.length - 2];
@@ -1310,57 +1401,36 @@ function FinancialPerformance() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6 mt-6 pt-5 border-t border-[var(--border-soft)]">
-        <div>
-          <RowStat label="1Y (TTM)" value="+9%" positive />
-          <RowStat label="3Y CAGR" value="+6%" positive />
-        </div>
-        <div>
-          <RowStat label="1Y (TTM)" value="+12%" positive />
-          <RowStat label="3Y CAGR" value="+5%" positive />
-        </div>
-      </div>
-    </div>
-  );
-}
+      {(() => {
+        const yearly = source.yearly;
+        const lastY = yearly[yearly.length - 1];
+        const prevY = yearly[yearly.length - 2];
+        const oldY = yearly[Math.max(0, yearly.length - 4)]; // ~3 years back if available
+        const yearsBack = yearly.length - 1 - Math.max(0, yearly.length - 4);
+        const pctChange = (curr, base) => (base ? (((curr - base) / base) * 100).toFixed(1) : null);
+        const cagr = (curr, base, years) =>
+          base > 0 && curr > 0 && years > 0 ? ((Math.pow(curr / base, 1 / years) - 1) * 100).toFixed(1) : null;
 
-const BAR_COLORS = ["var(--green)", "var(--blue)", "var(--yellow)", "var(--purple)"];
+        const rev1Y = pctChange(lastY.revenue, prevY.revenue);
+        const prof1Y = pctChange(lastY.profit, prevY.profit);
+        const revCagr = yearsBack > 0 ? cagr(lastY.revenue, oldY.revenue, yearsBack) : null;
+        const profCagr = yearsBack > 0 ? cagr(lastY.profit, oldY.profit, yearsBack) : null;
 
-function ShareholdingPattern() {
-  const [q, setQ] = useState("Mar '26");
-  const data = shareholding.data[q];
+        const fmt = (v) => (v == null ? "—" : `${v >= 0 ? "+" : ""}${v}%`);
 
-  return (
-    <div className="card">
-      <h3 className="text-[var(--text-primary)] text-[15px] font-semibold">Shareholding Pattern</h3>
-      <div className="flex items-center gap-2 mt-4 mb-6">
-        {shareholding.quarters.map((qq) => (
-          <button
-            key={qq}
-            onClick={() => setQ(qq)}
-            className={`h-8 px-3 rounded-full text-[12px] font-medium border transition-colors ${q === qq ? "bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/40" : "bg-transparent text-[var(--text-secondary)] border-[var(--border-color)] hover:text-[var(--text-primary)]"}`}
-          >
-            {qq}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-4">
-        {data.map((d, i) => (
-          <div key={d.label}>
-            <div className="flex items-center justify-between text-[13px] mb-1.5">
-              <span className="text-[var(--text-secondary)]">{d.label}</span>
-              <span className="text-[var(--text-primary)] font-medium">{d.pct.toFixed(2)}%</span>
+        return (
+          <div className="grid grid-cols-2 gap-6 mt-6 pt-5 border-t border-[var(--border-soft)]">
+            <div>
+              <RowStat label="1Y (TTM)" value={fmt(rev1Y)} positive={rev1Y == null || rev1Y >= 0} />
+              <RowStat label="3Y CAGR" value={fmt(revCagr)} positive={revCagr == null || revCagr >= 0} />
             </div>
-            <div className="w-full h-1.5 rounded-full bg-[var(--bg-card-alt)] overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${Math.min(d.pct, 100)}%`, background: BAR_COLORS[i % BAR_COLORS.length] }}
-              />
+            <div>
+              <RowStat label="1Y (TTM)" value={fmt(prof1Y)} positive={prof1Y == null || prof1Y >= 0} />
+              <RowStat label="3Y CAGR" value={fmt(profCagr)} positive={profCagr == null || profCagr >= 0} />
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1402,14 +1472,25 @@ function ChainedLogoImg({ candidates, className, onExhausted }) {
   );
 }
 
+// Real data has no curated logoBg/short-logo text (that was hand-picked for
+// the 4 hardcoded demo rows), so derive both deterministically from the
+// symbol: a stable hashed color plus its first letter as the fallback.
+const LOGO_BG_PALETTE = ["#1E2A3A", "#3B2A20", "#1B2340", "#1F3520", "#3A1F2E", "#2A2A1E", "#1E3A38"];
+function fallbackLogoBg(symbol) {
+  let hash = 0;
+  for (let i = 0; i < symbol.length; i++) hash = (hash * 31 + symbol.charCodeAt(i)) >>> 0;
+  return LOGO_BG_PALETTE[hash % LOGO_BG_PALETTE.length];
+}
+
 function SimilarStockLogo({ stock }) {
   const candidates = window.PBLogos ? window.PBLogos.getLogoCandidates(stock.symbol, stock.name) : [];
   const [failed, setFailed] = useState(false);
+  const initial = (stock.symbol || stock.name || "?").trim().charAt(0).toUpperCase();
 
   return (
     <div
       className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-[var(--text-primary)] ring-1 ring-[var(--border-color)] relative overflow-hidden"
-      style={{ background: stock.logoBg }}
+      style={{ background: fallbackLogoBg(stock.symbol || stock.name || "?") }}
     >
       {candidates.length > 0 && !failed && (
         <ChainedLogoImg
@@ -1418,12 +1499,34 @@ function SimilarStockLogo({ stock }) {
           onExhausted={() => setFailed(true)}
         />
       )}
-      {(!candidates.length || failed) && stock.logo}
+      {(!candidates.length || failed) && initial}
     </div>
   );
 }
 
 function SimilarStocks() {
+  const [rows, setRows] = useState([]);
+  const [loadState, setLoadState] = useState("loading"); // loading | ready | error
+  const symbol = stock.symbol;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadState("loading");
+    fetch(`${STOCKS_API_BASE}/api/similar/${encodeURIComponent(symbol)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("request failed"))))
+      .then((data) => {
+        if (cancelled) return;
+        setRows(Array.isArray(data) ? data : []);
+        setLoadState("ready");
+      })
+      .catch(() => { if (!cancelled) setLoadState("error"); });
+    return () => { cancelled = true; };
+  }, [symbol]);
+
+  const goToStock = (sym) => {
+    window.location.href = `?symbol=${encodeURIComponent(sym)}`;
+  };
+
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
@@ -1438,30 +1541,50 @@ function SimilarStocks() {
         <span className="text-right">P/E ratio</span>
       </div>
 
-      <div>
-        {similarStocks.map((s) => (
-          <div key={s.symbol} className="grid grid-cols-[1.6fr_1fr_1.4fr_1fr_0.8fr] gap-4 items-center py-4 border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--bg-card-alt)] transition-colors">
-            <div className="flex items-center gap-3">
-              <SimilarStockLogo stock={s} />
-              <div>
-                <div className="text-[var(--text-primary)] text-[13px] font-medium">{s.name}</div>
-                <div className="text-[var(--text-muted)] text-[11px]">{s.symbol}</div>
-              </div>
-            </div>
-            <div>
-              <div className="text-[var(--text-primary)] text-[13px] font-medium">₹{s.price}</div>
-              <div className={`text-[11px] ${s.up ? "text-[var(--green)]" : "text-[var(--red)]"}`}>{s.change} {s.pct}</div>
-            </div>
-            <RangeBar low={s.low} high={s.high} current={s.current} />
-            <div className="text-[var(--text-primary)] text-[13px]">{s.mcap}</div>
-            <div className="text-[var(--text-primary)] text-[13px] text-right">{s.pe}</div>
-          </div>
-        ))}
-      </div>
+      {loadState === "loading" && (
+        <div className="py-8 text-center text-[13px] text-[var(--text-secondary)]">Loading similar stocks...</div>
+      )}
+      {loadState === "error" && (
+        <div className="py-8 text-center text-[13px] text-[var(--text-secondary)]">Couldn't load similar stocks right now.</div>
+      )}
+      {loadState === "ready" && rows.length === 0 && (
+        <div className="py-8 text-center text-[13px] text-[var(--text-secondary)]">No similar stocks found for {symbol}.</div>
+      )}
 
-      <button className="mt-4 flex items-center gap-1 text-[var(--green)] text-[13px] font-medium hover:opacity-80 transition-opacity">
-        See more <ChevronRightIcon className="w-4 h-4" />
-      </button>
+      {loadState === "ready" && rows.length > 0 && (
+        <div>
+          {rows.map((s) => (
+            <div
+              key={s.symbol}
+              onClick={() => goToStock(s.symbol)}
+              className="grid grid-cols-[1.6fr_1fr_1.4fr_1fr_0.8fr] gap-4 items-center py-4 border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--bg-card-alt)] transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <SimilarStockLogo stock={s} />
+                <div>
+                  <div className="text-[var(--text-primary)] text-[13px] font-medium">{s.name}</div>
+                  <div className="text-[var(--text-muted)] text-[11px]">{s.symbol}</div>
+                </div>
+              </div>
+              <div>
+                <div className="text-[var(--text-primary)] text-[13px] font-medium">₹{Number(s.price).toLocaleString("en-IN")}</div>
+                <div className={`text-[11px] ${s.is_up ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
+                  {s.is_up ? "+" : ""}{s.change} ({s.changePct}%)
+                </div>
+              </div>
+              {s.weekLow != null && s.weekHigh != null ? (
+                <RangeBar low={s.weekLow} high={s.weekHigh} current={s.price} />
+              ) : (
+                <span className="text-[12px] text-[var(--text-muted)]">—</span>
+              )}
+              <div className="text-[var(--text-primary)] text-[13px]">
+                {s.marketCapCr != null ? `₹${Number(s.marketCapCr).toLocaleString("en-IN")} Cr` : "—"}
+              </div>
+              <div className="text-[var(--text-primary)] text-[13px] text-right">{s.peRatio != null ? s.peRatio : "—"}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1878,7 +2001,9 @@ function StockListRow({ item, onSelect }) {
 function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
   const [stocksData, setStocksData] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // loading | ready | error
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(
+    () => new URLSearchParams(window.location.search).get("q") || ""
+  );
   const [filters, setFilters] = useState({
     sectors: new Set(),
     indices: new Set(),
@@ -1886,6 +2011,12 @@ function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
     marketCap: [0, CAP_RANGE_MAX],
     price: [0, PRICE_RANGE_MAX],
   });
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("q")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1941,6 +2072,7 @@ function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
     return stocksData.filter((s) => {
       if (term && !s.name.toLowerCase().includes(term) && !s.symbol.toLowerCase().includes(term)) return false;
       if (filters.sectors.size > 0 && !filters.sectors.has(s.sector)) return false;
+      if (filters.indices.size > 0 && !(s.indices || []).some((i) => filters.indices.has(i))) return false;
       if (filters.capBucket && s.cap !== filters.capBucket) return false;
       if (s.marketCapCr != null && (s.marketCapCr < filters.marketCap[0] || s.marketCapCr > filters.marketCap[1])) return false;
       if (s.price < filters.price[0] || s.price > filters.price[1]) return false;
@@ -1951,6 +2083,9 @@ function AllStocksPage({ navActive, onNavChange, onSelectStock }) {
   const chips = [];
   filters.sectors.forEach((s) =>
     chips.push({ key: `sector-${s}`, label: s, onRemove: () => setFilters((f) => { const n = new Set(f.sectors); n.delete(s); return { ...f, sectors: n }; }) })
+  );
+  filters.indices.forEach((i) =>
+    chips.push({ key: `index-${i}`, label: i, onRemove: () => setFilters((f) => { const n = new Set(f.indices); n.delete(i); return { ...f, indices: n }; }) })
   );
   if (filters.capBucket) {
     chips.push({ key: "cap", label: `${filters.capBucket} Cap`, onRemove: () => setFilters((f) => ({ ...f, capBucket: null })) });
@@ -2086,7 +2221,6 @@ function StocksPage({ navActive, onNavChange, onBackToList }) {
             <AboutSection />
             <FundamentalsSection />
             <FinancialPerformance />
-            <ShareholdingPattern />
             <SimilarStocks />
             <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-2 pb-6">
               <span>Source: NSE India</span>

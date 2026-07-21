@@ -50,6 +50,27 @@ html, body, #root {
   padding: 18px;
   position: sticky;
   top: 92px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+.filters-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filters-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.filters-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+
+.filters-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
 }
 
 .filters-panel-header {
@@ -604,6 +625,8 @@ html, body, #root {
   }
   .filters-panel {
     position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
