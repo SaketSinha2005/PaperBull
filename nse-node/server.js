@@ -327,6 +327,16 @@ app.get('/api/ipos', (req, res) => {
     }
 });
 
+// Exposes non-secret, frontend-safe config values that are sourced from
+// this service's .env — currently just the Brandfetch client ID used by
+// dashboard/logos.js to fetch stock logos without hardcoding it in the
+// static frontend bundle.
+app.get('/api/config', (req, res) => {
+    res.json({
+        brandfetchClientId: process.env.BRANDFETCH_CLIENT_ID || ''
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`NSE Backend service running on http://localhost:${PORT}`);
     updateIPOData();

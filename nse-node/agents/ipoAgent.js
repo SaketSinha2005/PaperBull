@@ -1,23 +1,20 @@
 // nse-node/agents/ipoAgent.js
 const fs = require("fs");
 const path = require("path");
-const OpenAI = require("openai");
+const { GoogleGenAI } = require("@google/genai");
 require("dotenv").config();
 
-console.log("Checking API Key:", process.env.OPENAI_API_KEY ? "✅ Found it!" : "❌ MISSING!");
+console.log("Checking API Key:", process.env.GEMINI_API_KEY ? "✅ Found it!" : "❌ MISSING!");
 
 const CACHE = path.join(__dirname, "ipoCache.json");
 
-// Initialize the OpenAI client (make sure OPENAI_API_KEY is in your .env file)
-// timeout: fail loudly instead of hanging forever if the network/proxy blocks api.openai.com
-// maxRetries: let the SDK handle transient 429/5xx itself
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    timeout: 30 * 1000,
-    maxRetries: 2
-});
+// Initialize the Gemini client (make sure GEMINI_API_KEY is in your .env file)
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// JSON schema OpenAI will be forced to conform to (Structured Outputs)
+// JSON schema Gemini will be forced to conform to (Structured Outputs).
+// Gemini's schema support is a subset of OpenAPI/JSON Schema — no
+// "additionalProperties", but object/array/string/required all work
+// the same way as the old OpenAI schema did.
 const ipoListSchema = {
     type: "object",
     properties: {
@@ -33,43 +30,35 @@ const ipoListSchema = {
                     gmp: { type: "string", description: "Grey Market Premium percentage (e.g., '+18%' or '0%')" },
                     why_it_matters: { type: "string", description: "One concise sentence on why this IPO is notable" }
                 },
-                required: ["company", "status", "expected", "gmp", "why_it_matters"],
-                additionalProperties: false
+                required: ["company", "status", "expected", "gmp", "why_it_matters"]
             }
         }
     },
-    required: ["ipos"],
-    additionalProperties: false
+    required: ["ipos"]
 };
 
 async function callAgentOnce() {
     const start = Date.now();
-    console.log("  → calling OpenAI Responses API (web_search + gpt-5.5)...");
-    const response = await openai.responses.create({
-        model: "gpt-5.5",
-        tools: [{ type: "web_search" }],
-        input: `Search the internet for the 5-6 most important upcoming or recently listed IPOs in the Indian Stock Market (NSE/BSE) right now.
+    console.log("  → calling Gemini (googleSearch + gemini 3.1 flash lite)...");
+    // Gemini 3 models can combine Grounding with Google Search and
+    // Structured Outputs (responseSchema) in the same call, so we get
+    // live web results back already shaped into our JSON schema.
+    const response = await ai.models.generateContent({
+        model: "gemini-3.1 flash lite",
+        contents: `Search the internet for the 5-6 most important upcoming or recently listed IPOs in the Indian Stock Market (NSE/BSE) right now.
         Analyze the data and provide a concise summary for each.
         Do not include markdown links, citation markers, or source URLs anywhere in the output — plain text only.`,
-        text: {
-            format: {
-                type: "json_schema",
-                name: "ipo_list",
-                schema: ipoListSchema,
-                strict: true
-            }
+        config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json",
+            responseSchema: ipoListSchema
         }
     });
 
-    // Web search + strict JSON schema can occasionally return an
-    // incomplete/truncated text block, so pull it out explicitly and
-    // check status rather than trusting response.output_text blindly.
-    const message = response.output?.find(item => item.type === "message");
-    const textBlock = message?.content?.find(c => c.type === "output_text");
-    const rawText = textBlock?.text ?? response.output_text;
+    const rawText = response.text;
 
     if (!rawText) {
-        throw new Error("No output_text in response (status: " + response.status + ")");
+        throw new Error("No text in Gemini response");
     }
 
     const parsed = JSON.parse(rawText); // throws if truncated/malformed
@@ -78,10 +67,11 @@ async function callAgentOnce() {
     }
     console.log(`  ✔ got response in ${Date.now() - start}ms`);
 
-    // Safety net: the prompt asks the model to skip citations, but web_search
-    // sometimes still inlines them as "([source](url?utm_source=openai))".
-    // Strip any markdown links that slip through so the UI never shows raw
-    // markdown/URLs in the "why it matters" cell.
+    // Safety net: the prompt asks the model to skip citations, but
+    // Google Search grounding sometimes still inlines them as
+    // "([source](url?utm_source=...))". Strip any markdown links that
+    // slip through so the UI never shows raw markdown/URLs in the
+    // "why it matters" cell.
     const stripCitations = (text) =>
         text.replace(/\s*\(\[[^\]]*\]\([^)]*\)\)/g, "").trim();
 
@@ -94,7 +84,7 @@ async function callAgentOnce() {
 async function updateIPOData() {
     console.log("Agent started: Fetching latest IPO data...");
 
-    // One retry: this call combo (web_search + strict schema) occasionally
+    // One retry: this call combo (googleSearch + strict schema) occasionally
     // returns malformed/truncated JSON, so a single retry avoids leaving
     // the cache stale over a one-off blip.
     for (let attempt = 1; attempt <= 2; attempt++) {
@@ -106,9 +96,9 @@ async function updateIPOData() {
         } catch (error) {
             console.error(`❌ Agent attempt ${attempt} failed:`, error.message);
             // error.message alone often hides the real cause (auth, bad model,
-            // no billing/access) — log the SDK's status/code/type when present.
-            if (error.status || error.code || error.type) {
-                console.error(`   details → status: ${error.status}, code: ${error.code}, type: ${error.type}`);
+            // no billing/access) — log the SDK's status/code when present.
+            if (error.status || error.code) {
+                console.error(`   details → status: ${error.status}, code: ${error.code}`);
             }
             if (attempt === 2) {
                 console.error("❌ Giving up for this cycle; keeping existing cache (if any).");
