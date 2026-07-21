@@ -939,6 +939,26 @@ table { width: 100%; border-collapse: collapse; }
   width: 100%;
   table-layout: fixed; }
 
+.company-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mover-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+  background: #fdfdfd;
+  color: #1a3fa0;
+}
+
 .movers-table .col-company { width: 30%; text-align: left; }
 .movers-table .col-graph { width: 25%; text-align: center; }
 .movers-table .col-price { width: 25%; text-align: right; padding-right: 20px; }
@@ -1145,6 +1165,33 @@ table { width: 100%; border-collapse: collapse; }
   font-size: 15px;
   flex-shrink: 0;
   background: #fdfdfd;
+}
+
+/* ── Shared real-logo avatar (see logos.js) ──────────────────────────
+   Any element using these classes gets a real company logo layered
+   over the initials fallback; if the logo image fails to load it
+   just hides itself via onerror, so the initial shows through. */
+.pb-has-logo {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--border-soft, rgba(0,0,0,0.06));
+}
+
+.pb-logo-fallback {
+  display: block;
+  line-height: 1;
+}
+
+.pb-logo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 15%;
+  box-sizing: border-box;
+  background: #fff;
 }
 
 .logo-bel { color: #1a3fa0; }

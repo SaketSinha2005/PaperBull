@@ -737,9 +737,14 @@ async function fetchTopMovers(container, endpoint = DASHBOARD_API_ENDPOINT) {
         window.location.href = `stocks.html?symbol=${stock.symbol}`;
       });
 
+      const moverLogoHtml = window.PBLogos
+        ? window.PBLogos.avatarHtml(stock.symbol, stock.name, { wrapClass: "mover-logo" })
+        : `<div class="mover-logo"><span class="pb-logo-fallback">${symbolText.charAt(0)}</span></div>`;
+
       row.innerHTML = `
         <td class="col-company">
           <div class="company-cell">
+            ${moverLogoHtml}
             <span class="company-symbol">${symbolText}</span>
           </div>
         </td>
@@ -861,8 +866,12 @@ async function fetchBreakoutCards(endpoint) {
         }
       }
 
+      const logoHtml = window.PBLogos
+        ? window.PBLogos.avatarHtml(stock.symbol, companyName, { wrapClass: "bought-logo" })
+        : `<div class="bought-logo" style="color: #1a3fa0;">${firstLetter}</div>`;
+
       card.innerHTML = `
-        <div class="bought-logo" style="color: #1a3fa0;">${firstLetter}</div>
+        ${logoHtml}
         <div class="bought-name">
           <span class="breakout-company-name">${companyName}</span>
           <span class="breakout-company-sym">${stock.symbol}</span>

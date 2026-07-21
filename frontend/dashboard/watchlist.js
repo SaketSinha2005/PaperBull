@@ -261,7 +261,7 @@
         <tr class="watchlist-row-user" data-symbol="${r.symbol}">
           <td class="col-w-company">
             <div class="row-co">
-              <div class="w-logo">${initials(r.name).charAt(0)}</div>
+              ${window.PBLogos ? window.PBLogos.avatarHtml(r.symbol, r.name, { wrapClass: "w-logo" }) : `<div class="w-logo">${initials(r.name).charAt(0)}</div>`}
               <div>
                 <div class="h-name">${escapeHtml(r.name)}</div>
                 ${showSymbolLine ? `<div class="h-symbol">${r.symbol}</div>` : ""}

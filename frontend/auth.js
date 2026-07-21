@@ -54,12 +54,12 @@
 
   document.querySelectorAll('a[href]').forEach(function (link) {
     var href = link.getAttribute('href') || '';
-    if (href.indexOf('app.cryptowl.io/register') !== -1) {
+    if (href.indexOf('app.paperbull.io/register') !== -1) {
       link.addEventListener('click', function (e) {
         e.preventDefault();
         openModal('signup');
       });
-    } else if (href.indexOf('app.cryptowl.io/login') !== -1) {
+    } else if (href.indexOf('app.paperbull.io/login') !== -1) {
       link.addEventListener('click', function (e) {
         e.preventDefault();
         openModal('login');

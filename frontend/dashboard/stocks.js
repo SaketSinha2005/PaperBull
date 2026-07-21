@@ -827,6 +827,27 @@ function useMarketStatus() {
   return status;
 }
 
+function StockHeaderLogo({ symbol, name }) {
+  const candidates = window.PBLogos ? window.PBLogos.getLogoCandidates(symbol, name) : [];
+  const [failed, setFailed] = useState(false);
+  const initial = (name || symbol || "?").trim().charAt(0).toUpperCase();
+
+  return (
+    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--blue)] to-[var(--blue)] flex items-center justify-center shrink-0 ring-1 ring-[var(--border-color)] relative overflow-hidden">
+      {candidates.length > 0 && !failed && (
+        <ChainedLogoImg
+          candidates={candidates}
+          className="absolute inset-0 w-full h-full object-contain p-2 bg-white"
+          onExhausted={() => setFailed(true)}
+        />
+      )}
+      {(!candidates.length || failed) && (
+        <span className="text-[var(--text-primary)] font-bold text-lg tracking-tight">{initial}</span>
+      )}
+    </div>
+  );
+}
+
 function StockHeader() {
   const [added, setAdded] = useState(() => isInWatchlist(stock.symbol));
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -836,9 +857,7 @@ function StockHeader() {
     <div className="card">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--blue)] to-[var(--blue)] flex items-center justify-center shrink-0 ring-1 ring-[var(--border-color)]">
-            <span className="text-[var(--text-primary)] font-bold text-lg tracking-tight">{stock.symbol}</span>
-          </div>
+          <StockHeaderLogo symbol={stock.symbol} name={stock.name} />
           <div>
             <h1 className="text-[var(--text-primary)] text-[22px] font-semibold leading-tight">{stock.name}</h1>
             <div className="flex items-center gap-2 mt-2 text-[12px]">
@@ -1362,6 +1381,48 @@ function RangeBar({ low, high, current }) {
   );
 }
 
+// Renders an <img> that walks through a list of candidate logo URLs on
+// error (curated domain first, then a couple of name-guessed ones from
+// logos.js), calling onExhausted once none of them load so the caller
+// can fall back to its own initials placeholder.
+function ChainedLogoImg({ candidates, className, onExhausted }) {
+  const [idx, setIdx] = useState(0);
+  if (!candidates || idx >= candidates.length) return null;
+  return (
+    <img
+      src={candidates[idx]}
+      alt=""
+      loading="lazy"
+      className={className}
+      onError={() => {
+        if (idx + 1 >= candidates.length) onExhausted && onExhausted();
+        setIdx((i) => i + 1);
+      }}
+    />
+  );
+}
+
+function SimilarStockLogo({ stock }) {
+  const candidates = window.PBLogos ? window.PBLogos.getLogoCandidates(stock.symbol, stock.name) : [];
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div
+      className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-[var(--text-primary)] ring-1 ring-[var(--border-color)] relative overflow-hidden"
+      style={{ background: stock.logoBg }}
+    >
+      {candidates.length > 0 && !failed && (
+        <ChainedLogoImg
+          candidates={candidates}
+          className="absolute inset-0 w-full h-full object-contain p-1.5 bg-white"
+          onExhausted={() => setFailed(true)}
+        />
+      )}
+      {(!candidates.length || failed) && stock.logo}
+    </div>
+  );
+}
+
 function SimilarStocks() {
   return (
     <div className="card">
@@ -1381,9 +1442,7 @@ function SimilarStocks() {
         {similarStocks.map((s) => (
           <div key={s.symbol} className="grid grid-cols-[1.6fr_1fr_1.4fr_1fr_0.8fr] gap-4 items-center py-4 border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--bg-card-alt)] transition-colors">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-[var(--text-primary)] ring-1 ring-[var(--border-color)]" style={{ background: s.logoBg }}>
-                {s.logo}
-              </div>
+              <SimilarStockLogo stock={s} />
               <div>
                 <div className="text-[var(--text-primary)] text-[13px] font-medium">{s.name}</div>
                 <div className="text-[var(--text-muted)] text-[11px]">{s.symbol}</div>
@@ -1675,6 +1734,8 @@ function StockListRow({ item, onSelect }) {
   const rowRef = useRef(null);
   const up = item.is_up;
   const initial = (item.symbol || item.name || "?").trim().charAt(0).toUpperCase();
+  const logoCandidates = window.PBLogos ? window.PBLogos.getLogoCandidates(item.symbol, item.name) : [];
+  const [logoFailed, setLogoFailed] = useState(false);
 
   // Pull the row's chart from the exact same endpoint (`/api/series/:symbol`)
   // that already renders correctly on the stock detail page, instead of
@@ -1771,7 +1832,12 @@ function StockListRow({ item, onSelect }) {
     <tr ref={rowRef} onClick={() => onSelect(item)}>
       <td>
         <div className="stock-row-company">
-          <div className="stock-row-logo">{initial}</div>
+          <div className="stock-row-logo">
+            {logoCandidates.length > 0 && !logoFailed && (
+              <ChainedLogoImg candidates={logoCandidates} onExhausted={() => setLogoFailed(true)} />
+            )}
+            {(!logoCandidates.length || logoFailed) && initial}
+          </div>
           <div>
             <div className="stock-row-name">{item.name}</div>
             <div className="stock-row-symbol">{item.symbol}</div>

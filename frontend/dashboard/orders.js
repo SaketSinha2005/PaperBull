@@ -44,6 +44,24 @@
     return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
   };
 
+  // Fills a fixed logo element (which has its own id/CSS class already in
+  // the markup, e.g. #chartStockLogo) with a real company logo + initials
+  // fallback, without losing that element's id or base class.
+  function applyLogo(el, symbol, name, fallbackLetter) {
+    if (!el) return;
+    if (!window.PBLogos) {
+      el.textContent = fallbackLetter;
+      return;
+    }
+    const baseClass = el.className.replace(/\s*pb-has-logo\s*/g, " ").trim();
+    const wrap = window.PBLogos.avatarHtml(symbol, name, { wrapClass: baseClass });
+    const tmp = document.createElement("div");
+    tmp.innerHTML = wrap;
+    const inner = tmp.firstElementChild;
+    el.className = inner.className;
+    el.innerHTML = inner.innerHTML;
+  }
+
   function getPortfolio() {
     let portfolio = {};
     try {
@@ -288,7 +306,11 @@
     const s = currentStock;
     const logoText = initials(s.name).charAt(0) || s.symbol.charAt(0);
 
-    ["orderSelectedLogo", "chartStockLogo", "modalStockLogo"].forEach((id) => ($(id).textContent = logoText));
+    ["orderSelectedLogo", "chartStockLogo", "modalStockLogo"].forEach((id) => {
+      const el = $(id);
+      if (!el) return;
+      applyLogo(el, s.symbol, s.name, logoText);
+    });
     $("orderSelectedName").textContent = s.name;
     $("orderSelectedSub").textContent = `${s.symbol} · ${s.exchange || "NSE"}`;
     $("orderSelectedPrice").textContent = "₹" + s.price;
@@ -625,7 +647,7 @@
     const { price, amount } = recomputeEstimate();
     const s = currentStock;
 
-    $("modalStockLogo").textContent = initials(s.name).charAt(0) || s.symbol.charAt(0);
+    applyLogo($("modalStockLogo"), s.symbol, s.name, initials(s.name).charAt(0) || s.symbol.charAt(0));
     $("modalStockName").textContent = s.name;
     $("modalStockSub").textContent = `${s.symbol} · ${s.exchange || "NSE"}`;
     $("modalStockPrice").textContent = "₹" + s.price;

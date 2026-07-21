@@ -137,7 +137,7 @@
         return `
         <div class="holding-row" data-symbol="${symbol}">
           <div class="holding-row-left">
-            <div class="w-logo">${initials(h.name || symbol)}</div>
+            ${window.PBLogos ? window.PBLogos.avatarHtml(symbol, h.name || symbol, { wrapClass: "w-logo" }) : `<div class="w-logo">${initials(h.name || symbol)}</div>`}
             <div>
               <div class="holding-name">${symbol}</div>
               <div class="holding-meta">${h.qty} x Avg ${fmtINR(h.avgPrice)}</div>
