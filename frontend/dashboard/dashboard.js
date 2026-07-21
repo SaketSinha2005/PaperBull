@@ -1015,3 +1015,150 @@ document.addEventListener('DOMContentLoaded', () => {
   // Optionally refresh IPOs every 5 minutes so users don't have to reload
   setInterval(fetchUpcomingIPOs, 5 * 60 * 1000); 
 });
+
+/* ============================================================
+   Sidebar "Your investments" card — was always frozen on the empty
+   illustration regardless of whether the user actually held anything.
+   This syncs it with the same paperbull_portfolio ledger the Portfolio
+   page reads, so the empty state only shows when there truly are no
+   holdings, and live holdings show a real summary + top positions
+   otherwise.
+   ============================================================ */
+(function () {
+  const MARKET_API_BASE = 'http://localhost:5000';
+  const PORTFOLIO_KEY = 'paperbull_portfolio';
+  const LIVE_REFRESH_MS = 10000;
+  const MAX_ROWS_SHOWN = 4;
+
+  const $ = (id) => document.getElementById(id);
+
+  const fmtINR = (n, decimals = 0) =>
+    '₹' + Math.abs(n || 0).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+  const initials = (name) => (name ? String(name).trim().charAt(0).toUpperCase() : '?');
+
+  function getLocalHoldings() {
+    try {
+      const portfolio = JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || '{}');
+      return portfolio.holdings && typeof portfolio.holdings === 'object' ? portfolio.holdings : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  async function fetchLiveQuotes(symbols) {
+    if (!symbols.length) return {};
+    try {
+      const res = await fetch(`${MARKET_API_BASE}/api/stocks`);
+      if (!res.ok) throw new Error('Failed to fetch live quotes');
+      const list = await res.json();
+      const bySymbol = {};
+      if (Array.isArray(list)) list.forEach((s) => { if (s && s.symbol) bySymbol[s.symbol] = s; });
+      return bySymbol;
+    } catch (err) {
+      console.error('Sidebar investments: failed to load live prices.', err);
+      return {};
+    }
+  }
+
+  async function renderSidebarInvestments() {
+    const emptyState = $('investmentsEmptyState');
+    const holdingsState = $('investmentsHoldingsState');
+    if (!emptyState || !holdingsState) return; // not on the dashboard page
+
+    const holdings = getLocalHoldings();
+    const symbols = Object.keys(holdings);
+
+    if (!symbols.length) {
+      emptyState.hidden = false;
+      holdingsState.hidden = true;
+      return;
+    }
+
+    const liveQuotes = await fetchLiveQuotes(symbols);
+
+    let currentValue = 0;
+    let investedValue = 0;
+    const rows = symbols.map((symbol) => {
+      const h = holdings[symbol];
+      const live = liveQuotes[symbol];
+      const ltp = live ? Number(live.price) : h.avgPrice;
+      const invested = h.qty * h.avgPrice;
+      const curVal = h.qty * ltp;
+      currentValue += curVal;
+      investedValue += invested;
+      return { symbol, name: h.name || symbol, qty: h.qty, curVal, gain: curVal - invested };
+    });
+
+    const overallGain = currentValue - investedValue;
+    const overallGainPct = investedValue ? (overallGain / investedValue) * 100 : 0;
+    const gainUp = overallGain >= 0;
+
+    emptyState.hidden = true;
+    holdingsState.hidden = false;
+
+    const valueEl = $('investmentsCurrentValue');
+    if (valueEl) valueEl.textContent = fmtINR(currentValue, 2);
+
+    const gainEl = $('investmentsOverallGain');
+    if (gainEl) {
+      gainEl.textContent = `${gainUp ? '+' : '-'}${fmtINR(overallGain, 2)} (${gainUp ? '+' : '-'}${Math.abs(overallGainPct).toFixed(2)}%)`;
+      gainEl.classList.remove('up', 'down');
+      gainEl.classList.add(gainUp ? 'up' : 'down');
+    }
+
+    const listEl = $('investmentsHoldingsList');
+    if (listEl) {
+      const shown = rows.sort((a, b) => b.curVal - a.curVal).slice(0, MAX_ROWS_SHOWN);
+      listEl.innerHTML = shown
+        .map((r) => {
+          const rowGainUp = r.gain >= 0;
+          const logoHtml = window.PBLogos
+            ? window.PBLogos.avatarHtml(r.symbol, r.name, { wrapClass: 'w-logo' })
+            : `<div class="w-logo">${initials(r.name)}</div>`;
+          return `
+            <div class="inv-holding-item" data-symbol="${r.symbol}">
+              <div class="inv-holding-left">
+                ${logoHtml}
+                <div>
+                  <div class="inv-holding-name">${r.symbol}</div>
+                  <div class="inv-holding-meta">${r.qty} qty</div>
+                </div>
+              </div>
+              <div class="inv-holding-right">
+                <div class="inv-holding-value">${fmtINR(r.curVal, 2)}</div>
+                <div class="inv-holding-gain ${rowGainUp ? 'up' : 'down'}">${rowGainUp ? '+' : '-'}${fmtINR(r.gain, 2)}</div>
+              </div>
+            </div>`;
+        })
+        .join('');
+
+      if (rows.length > MAX_ROWS_SHOWN) {
+        listEl.innerHTML += `<div class="inv-holdings-more">+${rows.length - MAX_ROWS_SHOWN} more</div>`;
+      }
+
+      listEl.querySelectorAll('.inv-holding-item').forEach((row) => {
+        row.addEventListener('click', () => {
+          window.location.href = `stocks.html?symbol=${encodeURIComponent(row.getAttribute('data-symbol'))}`;
+        });
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const exploreBtn = $('investmentsExploreBtn');
+    if (exploreBtn) exploreBtn.addEventListener('click', () => { window.location.href = 'stocks.html'; });
+
+    const portfolioBtn = $('investmentsViewPortfolioBtn');
+    if (portfolioBtn) portfolioBtn.addEventListener('click', () => { window.location.href = 'portfolio.html'; });
+
+    renderSidebarInvestments();
+    setInterval(renderSidebarInvestments, LIVE_REFRESH_MS);
+
+    // Keeps this in sync if a trade happens in another tab (e.g. buying a
+    // stock on the Stocks page) while the dashboard is still open here.
+    window.addEventListener('storage', (e) => {
+      if (e.key === PORTFOLIO_KEY) renderSidebarInvestments();
+    });
+  });
+})();
