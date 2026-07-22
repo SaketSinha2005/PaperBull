@@ -616,15 +616,26 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 const DASHBOARD_API_BASE = 'http://localhost:5000';
-const DASHBOARD_API_ENDPOINT = `${DASHBOARD_API_BASE}/api/gainers`;
-let currentMoversEndpoint = DASHBOARD_API_ENDPOINT;
 const MAX_MOVERS_COUNT = 7;
+
+let currentMoversType = 'gainers';       // 'gainers' | 'losers'
+let currentMoversCategory = 'NIFTY';     // matches the <option value="..."> in movers-category-select
+
+function buildMoversEndpoint() {
+  return `${DASHBOARD_API_BASE}/api/${currentMoversType}?category=${encodeURIComponent(currentMoversCategory)}`;
+}
+
+let currentMoversEndpoint = buildMoversEndpoint();
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log("1. Dashboard.js is loaded and running!");
 
   const moversTableBody = document.getElementById('movers-table-body');
   const pills = document.querySelectorAll('.movers-bar .pill-tabs .pill');
+  const categoryDropdown = document.getElementById('moversCategorySelect');
+  const categoryTrigger = document.getElementById('moversCategoryTrigger');
+  const categoryLabel = document.getElementById('moversCategoryLabel');
+  const categoryMenu = document.getElementById('moversCategoryMenu');
   
   if (moversTableBody) {
     fetchTopMovers(moversTableBody, currentMoversEndpoint);
@@ -649,11 +660,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pills.forEach((p) => p.classList.remove('active'));
         pill.classList.add('active');
 
-        if (pill.textContent.trim() === 'Losers') {
-          currentMoversEndpoint = `${DASHBOARD_API_BASE}/api/losers`;
-        } else {
-          currentMoversEndpoint = `${DASHBOARD_API_BASE}/api/gainers`;
-        }
+        currentMoversType = pill.textContent.trim() === 'Losers' ? 'losers' : 'gainers';
+        currentMoversEndpoint = buildMoversEndpoint();
 
         moversTableBody.innerHTML = `
           <tr>
@@ -666,6 +674,52 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchTopMovers(moversTableBody, currentMoversEndpoint);
       });
     });
+
+    if (categoryDropdown && categoryTrigger && categoryLabel && categoryMenu) {
+      const menuItems = categoryMenu.querySelectorAll('li');
+
+      const closeMenu = () => categoryDropdown.classList.remove('open');
+
+      categoryTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        categoryDropdown.classList.toggle('open');
+      });
+
+      menuItems.forEach((item) => {
+        item.addEventListener('click', () => {
+          if (item.classList.contains('active')) {
+            closeMenu();
+            return;
+          }
+
+          menuItems.forEach((li) => li.classList.remove('active'));
+          item.classList.add('active');
+          categoryLabel.textContent = item.textContent;
+          closeMenu();
+
+          currentMoversCategory = item.getAttribute('data-value');
+          currentMoversEndpoint = buildMoversEndpoint();
+
+          moversTableBody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                Fetching live market data...
+              </td>
+            </tr>
+          `;
+
+          fetchTopMovers(moversTableBody, currentMoversEndpoint);
+        });
+      });
+
+      // Close on outside click and on Escape
+      document.addEventListener('click', (e) => {
+        if (!categoryDropdown.contains(e.target)) closeMenu();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+      });
+    }
 
   } 
   

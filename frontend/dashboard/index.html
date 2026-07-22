@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PaperBull Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=4">
+  <link rel="stylesheet" href="dashboard.css?v=6">
 </head>
 <body>
 
@@ -108,12 +108,18 @@
             <button class="pill">Losers</button>
           </div>
 
-          <select id="movers-category-select" class="dropdown-btn" style="outline: none; cursor: pointer;">
-            <option value="NIFTY">NIFTY 50</option>
-            <option value="BANKNIFTY">NIFTY BANK</option>
-            <option value="NIFTYNEXT50">NIFTY NEXT 50</option>
-            <option value="FOSec">F&O Securities</option>
-          </select>
+          <div class="custom-select" id="moversCategorySelect">
+            <button type="button" class="custom-select-trigger" id="moversCategoryTrigger">
+              <span id="moversCategoryLabel">NIFTY 50</span>
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <ul class="custom-select-menu" id="moversCategoryMenu">
+              <li data-value="NIFTY" class="active">NIFTY 50</li>
+              <li data-value="BANKNIFTY">NIFTY BANK</li>
+              <li data-value="NIFTYNEXT50">NIFTY NEXT 50</li>
+              <li data-value="FOSec">F&amp;O Securities</li>
+            </ul>
+          </div>
           
         </div>
 
@@ -273,7 +279,7 @@
 
   <script src="market-hours.js?v=1"></script>
   <script src="logos.js?v=1"></script>
-  <script src="dashboard.js?v=4"></script>
+  <script src="dashboard.js?v=5"></script>
   <script src="nav-search.js?v=1"></script>
 </body>
 </html>
