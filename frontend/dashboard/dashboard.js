@@ -1016,6 +1016,65 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(fetchUpcomingIPOs, 5 * 60 * 1000); 
 });
 
+// Fetch and render live market news (sourced via Grok on the backend)
+async function fetchMarketNews() {
+  const container = document.getElementById('news-list');
+  if (!container) return; // Exit if not on the dashboard
+
+  try {
+    const response = await fetch('http://localhost:5000/api/news');
+    if (!response.ok) throw new Error('Failed to fetch news');
+
+    const newsItems = await response.json();
+
+    if (!Array.isArray(newsItems) || newsItems.length === 0) {
+      container.innerHTML = `
+        <li class="news-item">
+          <div class="news-text">
+            <p class="news-headline">No news available right now.</p>
+            <p class="news-meta">&nbsp;</p>
+          </div>
+        </li>`;
+      return;
+    }
+
+    const thumbClasses = ['thumb-1', 'thumb-2', 'thumb-3', 'thumb-4', 'thumb-5', 'thumb-6'];
+
+    container.innerHTML = newsItems.map((item, i) => {
+      const thumbClass = thumbClasses[i % thumbClasses.length];
+      const metaParts = [item.source, item.time_ago].filter(Boolean).join(' &middot; ');
+      const inner = `
+        <div class="news-text">
+          <p class="news-headline">${item.headline}</p>
+          <p class="news-meta">${metaParts || '&nbsp;'}</p>
+        </div>
+        <div class="news-thumb ${thumbClass}"></div>
+      `;
+
+      return item.url
+        ? `<li class="news-item"><a href="${item.url}" target="_blank" rel="noopener noreferrer" style="display:contents; color:inherit; text-decoration:none;">${inner}</a></li>`
+        : `<li class="news-item">${inner}</li>`;
+    }).join('');
+
+  } catch (error) {
+    console.error('Error fetching market news:', error);
+    container.innerHTML = `
+      <li class="news-item">
+        <div class="news-text">
+          <p class="news-headline" style="color: var(--red);">Failed to load live news.</p>
+          <p class="news-meta">Ensure backend server is active on http://localhost:5000</p>
+        </div>
+      </li>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetchMarketNews();
+
+  // Refresh news every 5 minutes
+  setInterval(fetchMarketNews, 5 * 60 * 1000);
+});
+
 /* ============================================================
    Sidebar "Your investments" card — was always frozen on the empty
    illustration regardless of whether the user actually held anything.

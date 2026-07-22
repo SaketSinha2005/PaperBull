@@ -515,7 +515,7 @@ function PlaylistPickerModal({ symbol, name, onClose, onChange }) {
   );
 }
 
-const stockTabs = ["Overview", "Technicals", "News", "Events", "F&O"];
+const stockTabs = ["Overview"];
 const timeRanges = ["1D", "1W", "1M", "3M", "6M", "1Y", "3Y", "5Y", "Max"];
 
 const fundamentals = [
@@ -1614,16 +1614,59 @@ function RobotSVG() {
 function AIAssistant() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const send = (text) => {
+  const send = async (text) => {
     const q = (text ?? input).trim();
-    if (!q) return;
-    setMessages((m) => [
-      ...m,
-      { role: "user", text: q },
-      { role: "ai", text: "This is a demo response. In the full version, I will analyze TCS financials, technicals and market signals to answer this question." },
-    ]);
+    if (!q || loading) return;
+
+    const historyForRequest = messages; // snapshot before appending the new turn
+    setMessages((m) => [...m, { role: "user", text: q }]);
     setInput("");
+    setLoading(true);
+
+    // Send along whatever we currently know about the stock so the model
+    // can ground its answer instead of guessing at numbers.
+    const stockContext = {
+      symbol: stock.symbol,
+      name: stock.name,
+      exchange: stock.exchange,
+      sector: stock.sector,
+      cap: stock.cap,
+      price: stock.price,
+      change: stock.change,
+      pct: stock.pct,
+      todaysLow: stock.todaysLow,
+      todaysHigh: stock.todaysHigh,
+      weekLow: stock.weekLow,
+      weekHigh: stock.weekHigh,
+      open: stock.open,
+      prevClose: stock.prevClose,
+      volume: stock.volume,
+      about: stock.about,
+    };
+
+    try {
+      const res = await fetch(`${STOCKS_API_BASE}/api/ai-assistant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: q,
+          stockContext,
+          history: historyForRequest,
+        }),
+      });
+      if (!res.ok) throw new Error("Request failed");
+      const data = await res.json();
+      setMessages((m) => [...m, { role: "ai", text: data.reply || "Sorry, I couldn't get an answer for that." }]);
+    } catch (err) {
+      setMessages((m) => [
+        ...m,
+        { role: "ai", text: "Couldn't reach the AI Assistant. Make sure the backend server is running on http://localhost:5000." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -1667,6 +1710,11 @@ function AIAssistant() {
               {m.text}
             </div>
           ))}
+          {loading && (
+            <div className="px-3 py-2 rounded-xl text-[12px] leading-relaxed bg-[var(--bg-card-alt)] text-[var(--text-secondary)] border border-[var(--border-color)] mr-6">
+              Thinking...
+            </div>
+          )}
         </div>
       )}
 
@@ -1676,11 +1724,13 @@ function AIAssistant() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Ask anything..."
-          className="w-full h-11 pl-4 pr-12 rounded-xl bg-[var(--bg-card-alt)] border border-[var(--border-color)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--green)]/40 transition-colors"
+          disabled={loading}
+          className="w-full h-11 pl-4 pr-12 rounded-xl bg-[var(--bg-card-alt)] border border-[var(--border-color)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--green)]/40 transition-colors disabled:opacity-60"
         />
         <button
           onClick={() => send()}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[var(--green)] hover:bg-[var(--green)] flex items-center justify-center transition-colors"
+          disabled={loading}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[var(--green)] hover:bg-[var(--green)] flex items-center justify-center transition-colors disabled:opacity-60"
         >
           <SendIcon className="w-3.5 h-3.5 text-[var(--bg-card)]" />
         </button>
