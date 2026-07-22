@@ -1,12 +1,3 @@
-/* ============================================================
-   PaperBull — Watchlist page
-   Supports multiple named, user-created watchlists (like playlists):
-   create, rename, delete a watchlist, and add/remove stocks from
-   whichever one is active. Prices come live from the nse-node
-   market-data backend (http://localhost:5000) and refresh on an
-   interval.
-   ============================================================ */
-
 (function () {
   const MARKET_API_BASE = "http://localhost:5000";
   const STATE_KEY = "paperbull_watchlists_v2";
