@@ -9,16 +9,15 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:4321";
 // POST /api/signup
 router.post("/signup", async (req, res) => {
   try {
-    const { email, password, firstName } = req.body;
+    const { email, password, firstName, lastName } = req.body;
 
-    if (!email || !password || !firstName) {
+    if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({
         success: false,
         message: "All fields are required.",
       });
     }
 
-    // Check if email already exists
     const existing = await pool.query(
       "SELECT id FROM user_auth WHERE email=$1",
       [email],
@@ -32,6 +31,7 @@ router.post("/signup", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const displayName = `${firstName} ${lastName}`.trim();
 
     // Insert into user_auth
     const authResult = await pool.query(
@@ -45,10 +45,10 @@ router.post("/signup", async (req, res) => {
 
     // Insert into users
     const userResult = await pool.query(
-      `INSERT INTO users(auth_id,firstName)
+      `INSERT INTO users(auth_id, display_name)
        VALUES($1,$2)
        RETURNING *`,
-      [authId, firstName],
+      [authId, displayName],
     );
 
     return res.json({

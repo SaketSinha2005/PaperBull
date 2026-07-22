@@ -113,8 +113,8 @@
       e.preventDefault();
       if (signupError) signupError.textContent = '';
 
-      var firstName = (document.getElementById('signupFullName') || {}).value || '';
-      var lastName = (document.getElementById('signupUsername') || {}).value || '';
+      var firstName = (document.getElementById('signupFirstName') || {}).value || '';
+      var lastName = (document.getElementById('signupLastName') || {}).value || '';
       var email = (document.getElementById('signupEmail') || {}).value || '';
       var password = (document.getElementById('signupPassword') || {}).value || '';
       var confirm = (document.getElementById('signupConfirm') || {}).value || '';
@@ -131,7 +131,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          display_name: displayName,
+          firstName: firstName,
+          lastName: lastName,
           email: email,
           password: password
         })
