@@ -848,7 +848,6 @@ function IndicesTicker() {
           </span>
         ))}
       </div>
-      <div className="ticker-right">9/15</div>
     </div>
   );
 }
