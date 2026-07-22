@@ -11,6 +11,7 @@ const app = express();
 const PORT = 5000;
 
 app.use(cors());
+app.use(express.json());
 app.use('/api', marketRoutes);
 
 const HEADERS = {
@@ -315,6 +316,8 @@ app.get('/api/currency-snapshot', async (req, res) => {
 
 // Add this near the top with your other imports
 const { getIPOData, updateIPOData } = require('./agents/ipoAgent');
+const { getNewsData, updateNewsData } = require('./agents/newsAgent');
+const { getChatReply } = require('./agents/chatAgent');
 
 // Add this alongside your other endpoints (e.g., below /api/currency-snapshot)
 app.get('/api/ipos', (req, res) => {
@@ -324,6 +327,30 @@ app.get('/api/ipos', (req, res) => {
     } catch (error) {
         console.error('Error in /api/ipos:', error.message);
         res.status(500).json({ error: 'Failed to fetch IPO data' });
+    }
+});
+
+// Market news, sourced live via Gemini (Google Search grounding) — see agents/newsAgent.js
+app.get('/api/news', (req, res) => {
+    try {
+        const data = getNewsData();
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /api/news:', error.message);
+        res.status(500).json({ error: 'Failed to fetch news data' });
+    }
+});
+
+// Per-stock AI Assistant chat, sourced live via Gemini — see agents/chatAgent.js.
+// Body: { symbol, question, stockContext, history: [{role: 'user'|'ai', text}] }
+app.post('/api/ai-assistant', async (req, res) => {
+    try {
+        const { question, stockContext, history } = req.body || {};
+        const reply = await getChatReply(question, stockContext, history);
+        res.json({ reply });
+    } catch (error) {
+        console.error('Error in /api/ai-assistant:', error.message);
+        res.status(500).json({ error: 'Failed to get AI Assistant reply' });
     }
 });
 
@@ -340,4 +367,5 @@ app.get('/api/config', (req, res) => {
 app.listen(PORT, () => {
     console.log(`NSE Backend service running on http://localhost:${PORT}`);
     updateIPOData();
+    updateNewsData();
 });

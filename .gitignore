@@ -4,6 +4,7 @@ venv/
 
 # Backend
 paperbull-node/.env
+nse-node/.env
 
 # Ignore node_modules directories everywhere
 node_modules/

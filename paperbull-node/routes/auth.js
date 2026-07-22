@@ -9,9 +9,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:4321";
 // POST /api/signup
 router.post("/signup", async (req, res) => {
   try {
-    const { email, password, display_name } = req.body;
+    const { email, password, firstName } = req.body;
 
-    if (!email || !password || !display_name) {
+    if (!email || !password || !firstName) {
       return res.status(400).json({
         success: false,
         message: "All fields are required.",
@@ -45,10 +45,10 @@ router.post("/signup", async (req, res) => {
 
     // Insert into users
     const userResult = await pool.query(
-      `INSERT INTO users(auth_id,display_name)
+      `INSERT INTO users(auth_id,firstName)
        VALUES($1,$2)
        RETURNING *`,
-      [authId, display_name],
+      [authId, firstName],
     );
 
     return res.json({
