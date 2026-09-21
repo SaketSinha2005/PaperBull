@@ -1,0 +1,516 @@
+
+<html xmlns:o='urn:schemas-microsoft-com:office:office'
+      xmlns:w='urn:schemas-microsoft-com:office:word'
+      xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>PaperBull - Complete Codebase Onboarding & Technical Manual</title>
+<!--[if gte mso 9]>
+<xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  @page WordSection1 {
+    size: 8.5in 11.0in;
+    margin: 1.0in 1.0in 1.0in 1.0in;
+    mso-header-margin: .5in;
+    mso-footer-margin: .5in;
+    mso-paper-source: 0;
+  }
+  div.WordSection1 {
+    page: WordSection1;
+  }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #1e293b;
+  }
+  .header-cover {
+    background-color: #0b0e14;
+    color: #ffffff;
+    padding: 24pt;
+    border-radius: 6pt;
+    margin-bottom: 20pt;
+  }
+  .header-cover h1 {
+    font-size: 22pt;
+    margin: 0 0 8pt 0;
+    color: #60a5fa;
+    border-bottom: none;
+  }
+  .header-cover p {
+    font-size: 11pt;
+    color: #94a3b8;
+    margin: 0;
+  }
+  h1 { font-size: 18pt; color: #1e40af; border-bottom: 2pt solid #3b82f6; padding-bottom: 4pt; margin-top: 24pt; }
+  h2 { font-size: 14pt; color: #1e3a8a; border-bottom: 1pt solid #cbd5e1; padding-bottom: 2pt; margin-top: 18pt; }
+  h3 { font-size: 12pt; color: #334155; margin-top: 14pt; }
+  table { border-collapse: collapse; width: 100%; margin: 12pt 0; font-size: 10pt; }
+  th, td { border: 1pt solid #cbd5e1; padding: 6pt 8pt; text-align: left; }
+  th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+  tr:nth-child(even) { background-color: #f8fafc; }
+  pre { background-color: #0f172a; color: #f8fafc; padding: 10pt; font-family: 'Consolas', monospace; font-size: 9.5pt; border-radius: 4pt; white-space: pre-wrap; }
+  code { font-family: 'Consolas', monospace; background-color: #f1f5f9; color: #0f172a; padding: 2pt 4pt; font-size: 10pt; }
+  .formula-box { background-color: #f8fafc; border: 1pt solid #cbd5e1; padding: 8pt; font-weight: bold; text-anchor: middle; text-align: center; font-family: 'Consolas', monospace; margin: 10pt 0; }
+  .toc { background-color: #f8fafc; border: 1pt solid #e2e8f0; padding: 14pt; border-radius: 6pt; margin-bottom: 20pt; }
+  .toc ol { margin: 0; padding-left: 18pt; }
+  .toc li { margin-bottom: 3pt; }
+</style>
+</head>
+<body>
+<div class="WordSection1">
+
+<div class="header-cover">
+  <h1>🐂 PaperBull: Complete Codebase Onboarding & Technical Manual</h1>
+  <p><strong>System Architecture, API Specification, Database Reference & Complete Developer Walkthrough</strong></p>
+  <p style="margin-top: 8pt; font-size: 10pt; color: #94a3b8;">Target Stack: Node.js, Express, PostgreSQL, Vanilla JS, React, Google Gemini AI, Yahoo Finance</p>
+</div>
+
+<div class="toc">
+  <h3 style="margin-top: 0;">📑 Table of Contents</h3>
+  <ol>
+    <li>Project Overview</li>
+    <li>Folder Structure</li>
+    <li>Backend Microservices Architecture</li>
+    <li>Frontend Architecture</li>
+    <li>Database Schema & Data Flow</li>
+    <li>Authentication & Authorization Systems</li>
+    <li>Dashboard Execution Lifecycle</li>
+    <li>Stock Search & Screening Algorithm</li>
+    <li>Stock Details & Analysis Engine</li>
+    <li>Portfolio & Financial Calculations</li>
+    <li>Order Execution & Product Mechanics</li>
+    <li>End-to-End Transaction Flow</li>
+    <li>Complete API Route Specification</li>
+    <li>External API Integrations</li>
+    <li>Company Logo Pipeline & Fallback Resolution</li>
+    <li>Charting Engine & Mathematical Transformations</li>
+    <li>Environment Variables Reference</li>
+    <li>Deep Dive into Essential Functions</li>
+    <li>Complete User Journey (Step-by-Step Trajectory)</li>
+    <li>Software Design Patterns Applied</li>
+    <li>Performance Optimization Strategies</li>
+    <li>Security Architecture & Threat Mitigation</li>
+    <li>Error Handling & Fault Tolerance</li>
+    <li>Architectural Diagrams</li>
+    <li>Mentor-Style Explanations</li>
+    <li>Hidden Logic, Edge Cases, Code Smells & Scalability</li>
+    <li>Developer Learning Roadmap & File Reading Guide</li>
+  </ol>
+</div>
+
+<h1>1. Project Overview</h1>
+<p><strong>PaperBull</strong> is a modern, real-time paper-trading (simulated stock trading) platform and market intelligence dashboard built specifically for the Indian Equity Market (NSE/BSE). It grants users a virtual wallet of <strong>₹1,00,000.00</strong> to trade over 2,000+ Indian equities, test intraday (MIS) and delivery (CNC) trading strategies, analyze real-time technical sparklines, inspect company fundamentals, track IPO Grey Market Premiums (GMP), and chat with an embedded Google Gemini AI financial assistant.</p>
+
+<h3>What Problem Does It Solve?</h3>
+<p>Retail investors and aspiring traders in India face significant barriers when learning stock market trading:</p>
+<ul>
+  <li><strong>Financial Risk</strong>: Real money trading without prior strategy validation leads to rapid capital depletion.</li>
+  <li><strong>Delayed & Fragmented Information</strong>: Most free tools provide static 15-minute delayed data or lack sector-wide screening, financial income statements, and market depth visualization in one workspace.</li>
+  <li><strong>Complex Intraday Square-Off Rules</strong>: Real stockbrokers automatically liquidate intraday (MIS) positions before the market close (3:15 PM IST). Novice traders often misunderstand this margin rule. PaperBull models exact EOD intraday square-offs server-side.</li>
+</ul>
+
+<h3>How Does the Complete System Work?</h3>
+<p>PaperBull operates as a <strong>Decoupled Three-Tier Microservice Architecture</strong>:</p>
+<ul>
+  <li><strong>Client Tier (<code>/frontend</code>)</strong>: Single-page application modules (HTML5, Vanilla CSS, React via CDN, and Vanilla JS) running in the browser.</li>
+  <li><strong>Market Data & AI Microservice (<code>/nse-node</code>, Port 5000)</strong>: Node.js/Express service that interfaces with Yahoo Finance APIs, parses official NSE CSV master lists, caches 2,000+ stock quotes, and orchestrates autonomous Google Gemini AI agents for live market news and IPO tracking.</li>
+  <li><strong>Trading Engine & Auth Microservice (<code>/paperbull-node</code>, Port 8000)</strong>: Node.js/Express service backed by PostgreSQL. Manages user registration, Bcrypt hashing, Google OAuth 2.0 via Passport, atomic portfolio ledger transactions, weighted average buy price updates, realized P&L bookkeeping, and an automated background intraday square-off cron job.</li>
+</ul>
+
+<h1>2. Folder Structure</h1>
+<pre>
+PaperBull/
+├── database.sql                      # PostgreSQL schema definition & migrations
+├── README.md                         # Repository documentation
+├── paperbull-node/                   # Backend microservice: Auth & Trading Ledger (Port 8000)
+│   ├── .env                          # Environment variables for paperbull-node
+│   ├── .env.example                  # Template environment variables
+│   ├── db.js                         # PostgreSQL connection pool manager (pg.Pool)
+│   ├── server.js                     # Express application entry point & cron launcher
+│   ├── marketHours.js                # Server-side source of truth for IST market hours
+│   ├── intradaySquareOff.js          # Authoritative background EOD intraday liquidation job
+│   ├── config/
+│   │   └── passport.js               # Passport.js Google OAuth 2.0 strategy configuration
+│   └── routes/
+│       ├── auth.js                   # REST routes: /api/signup, /api/login, /api/auth/google
+│       └── portfolio.js            # REST routes: GET /api/portfolio/:email, POST /api/portfolio/order
+├── nse-node/                         # Microservice: Market Data Proxy & AI Service (Port 5000)
+│   ├── .env                          # Environment variables (GEMINI_API_KEY, BRANDFETCH_CLIENT_ID)
+│   ├── .env.example                  # Template environment variables
+│   ├── server.js                     # Express market data app & route loader
+│   ├── market.js                     # Main market router (2000+ stocks, quotes, charts, financials)
+│   ├── equity-universe-cache.json    # Disk cache for 2000+ NSE equity master list (EQUITY_L.csv)
+│   └── agents/
+│       ├── chatAgent.js              # Gemini-powered contextual AI assistant engine
+│       ├── ipoAgent.js               # Gemini + Google Search grounding agent for Indian IPOs
+│       ├── ipoCache.json             # Cached output of IPO analysis
+│       ├── newsAgent.js              # Gemini + Google Search grounding agent for live market news
+│       ├── newsCache.json            # Cached output of live market news
+│       └── test-ipo-agent.js         # Manual test script for IPO agent
+└── frontend/                         # Client-Side Application Assets
+    ├── index.html                    # Public product marketing landing page
+    ├── auth/
+    │   └── callback.html             # OAuth redirect receiver page
+    └── dashboard/                    # PaperBull Trading Application Workspace
+        ├── index.html                # Main Dashboard View (Movers, IPOs, 52W breakouts, News)
+        ├── stocks.html               # Stock Directory & Stock Detail View shell
+        ├── portfolio.html            # User Holdings & Orders History View shell
+        ├── orders.html              # Direct Trading Order Ticket & Order Book View shell
+        ├── watchlist.html           # Multi-Playlist Watchlist Manager View shell
+        ├── styles.css                # Base visual theme tokens
+        ├── dashboard.css             # Main layout styles, glassmorphic cards, tables
+        ├── stocks.css                # React stock directory & detail styling
+        ├── orders.css                # Order ticket & market depth styling
+        ├── dashboard.js              # Main dashboard controller & widget populator
+        ├── stocks.js                # React application bundle (Directory, Details, AI Chat, Screener)
+        ├── portfolio.js             # Portfolio state renderer & P&L calculator
+        ├── orders.js                 # Order ticket logic, market depth, local ledger sync
+        ├── watchlist.js              # Multi-watchlist manager & live price updater
+        ├── logos.js                  # Brandfetch & avatar fallback image pipeline
+        ├── market-hours.js           # Client-side market hours & status ticker calculator
+        ├── nav-search.js             # Global navigation bar fuzzy search overlay controller
+        └── script.js                 # Minor UI helper utilities
+</pre>
+
+<h1>3. Backend Microservices Architecture</h1>
+
+<h2>Service 1: paperbull-node (Port 8000)</h2>
+<h3>1. server.js</h3>
+<p><strong>Purpose:</strong> Express application entry point. Registers middleware (cors, express.json, passport.initialize), mounts auth and portfolio router routes, connects to PostgreSQL database pool, and starts the 30-second background intraday square-off job.</p>
+
+<h3>2. db.js</h3>
+<p><strong>Purpose:</strong> Instantiates PostgreSQL connection pool using <code>pg.Pool</code>. Exports shared <code>pool</code> object used for executing database queries across all routes.</p>
+
+<h3>3. marketHours.js</h3>
+<p><strong>Purpose:</strong> Server-side authority for Indian Stock Market hours (Mon-Fri, 9:15 AM to 3:30 PM IST). Exports <code>getMarketStatus()</code> which identifies whether time is past 3:15 PM IST (intraday square-off buffer window).</p>
+
+<h3>4. intradaySquareOff.js</h3>
+<p><strong>Purpose:</strong> Automated end-of-day liquidation worker. Periodically polls database, finds open intraday holdings (<code>intraday_qty > 0</code>), fetches live market price from <code>nse-node</code>, calculates realized P&L, force-sells remaining intraday shares, and credits the user wallet.</p>
+
+<h3>5. config/passport.js</h3>
+<p><strong>Purpose:</strong> Implements Google OAuth 2.0 Passport strategy. Handles user verification, existing account lookup, and auto-provisioning of new accounts with ₹1,00,000.00 starting balance.</p>
+
+<h3>6. routes/auth.js</h3>
+<p><strong>Endpoints:</strong></p>
+<ul>
+  <li><code>POST /api/signup</code>: Hashes password with Bcrypt (10 rounds), creates user record, initializes wallet balance.</li>
+  <li><code>POST /api/login</code>: Validates credentials against stored Bcrypt hash, updates <code>last_login</code> timestamp.</li>
+  <li><code>GET /api/auth/google</code> & <code>/api/auth/google/callback</code>: Executes Google OAuth dance and redirects back with Base64 payload.</li>
+</ul>
+
+<h3>7. routes/portfolio.js</h3>
+<p><strong>Endpoints:</strong></p>
+<ul>
+  <li><code>GET /api/portfolio/:email</code>: Returns holdings, current stats, and top 100 recent orders.</li>
+  <li><code>POST /api/portfolio/order</code>: Executes atomic paper trade inside PostgreSQL transaction (<code>BEGIN ... COMMIT</code>) with row-level locks (<code>FOR UPDATE</code>). Computes weighted average buy price and realized P&L.</li>
+</ul>
+
+<h2>Service 2: nse-node (Port 5000)</h2>
+<h3>1. server.js</h3>
+<p><strong>Purpose:</strong> Express market data server. Mounts market routes, gainers/losers endpoints, 52W breakout endpoints, currency spot rates, IPO endpoint, market news endpoint, and AI chat endpoint.</p>
+
+<h3>2. market.js</h3>
+<p><strong>Purpose:</strong> Main market engine. Loads official NSE <code>EQUITY_L.csv</code> master list (2,000+ equities), maintains rotating sparkline cache (<code>sparkCache</code>), serves detailed stock metrics, 1D chart candles, historical range series, income statement financials, and sector peer lookups.</p>
+
+<h3>3. agents/chatAgent.js</h3>
+<p><strong>Purpose:</strong> Google Gemini powered financial assistant. Strictly scoped to investment concepts, market mechanics, and stock analysis, automatically injected with current stock metrics as system context.</p>
+
+<h3>4. agents/ipoAgent.js</h3>
+<p><strong>Purpose:</strong> Autonomous background agent using Gemini 3.1 Flash Lite with Google Search Grounding and Structured Output Schemas to find current IPOs, Grey Market Premiums (GMP), and listing dates.</p>
+
+<h3>5. agents/newsAgent.js</h3>
+<p><strong>Purpose:</strong> Autonomous background agent using Gemini Google Search Grounding to fetch top real-time headlines every 10 minutes into an on-disk JSON cache.</p>
+
+<h1>4. Frontend Architecture</h1>
+<p>The frontend consists of responsive HTML5 pages, CSS theme modules, Vanilla JS controllers, and React components rendered via standalone browser scripts.</p>
+
+<h3>Key Frontend Modules:</h3>
+<ul>
+  <li><code>frontend/dashboard/index.html</code> & <code>dashboard.js</code>: Main dashboard with market ticker, 52W breakouts, top movers, currency table, IPO card, news feed, and sidebar investment summary.</li>
+  <li><code>frontend/dashboard/stocks.html</code> & <code>stocks.js</code>: React SPA supporting stock directory search, multi-faceted screening (Sectors, Caps, Indices, Price/Cap/PE sliders), interactive SVG price charts, financial bar charts, and Gemini AI assistant drawer.</li>
+  <li><code>frontend/dashboard/orders.html</code> & <code>orders.js</code>: Trade ticket interface supporting Delivery (CNC) vs Intraday (MIS), Market vs Trigger orders, simulated Level-2 Market Depth (5 Best Bids/Asks), and live margin validation.</li>
+  <li><code>frontend/dashboard/portfolio.html</code> & <code>portfolio.js</code>: Portfolio overview rendering holdings, live market value, unrealized P&L, today's P&L, and complete order execution history log.</li>
+  <li><code>frontend/dashboard/watchlist.html</code> & <code>watchlist.js</code>: Multi-playlist custom stock watchlist manager with 10-second live price auto-refresh.</li>
+</ul>
+
+<h1>5. Database Schema & Data Flow</h1>
+<p>PaperBull relies on PostgreSQL for persistent relational data storage.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Table Name</th>
+      <th>Primary Key</th>
+      <th>Foreign Keys</th>
+      <th>Key Columns</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>user_auth</code></td>
+      <td><code>id</code></td>
+      <td>None</td>
+      <td><code>email</code>, <code>password_hash</code>, <code>google_id</code>, <code>last_login</code></td>
+      <td>Stores authentication credentials and social auth bindings.</td>
+    </tr>
+    <tr>
+      <td><code>users</code></td>
+      <td><code>id</code></td>
+      <td><code>auth_id -> user_auth(id)</code></td>
+      <td><code>display_name</code>, <code>virtual_balance</code>, <code>realized_pnl</code>, <code>total_trades</code></td>
+      <td>Stores user profile and main wallet stats (default balance ₹1,00,000.00).</td>
+    </tr>
+    <tr>
+      <td><code>holdings</code></td>
+      <td><code>id</code></td>
+      <td><code>user_id -> users(id)</code></td>
+      <td><code>symbol</code>, <code>qty</code>, <code>avg_price</code>, <code>intraday_qty</code>, <code>intraday_date</code></td>
+      <td>Tracks active stock holdings per user, separated into delivery and intraday buckets.</td>
+    </tr>
+    <tr>
+      <td><code>orders</code></td>
+      <td><code>id</code></td>
+      <td><code>user_id -> users(id)</code></td>
+      <td><code>symbol</code>, <code>side</code>, <code>product</code>, <code>order_type</code>, <code>qty</code>, <code>price</code>, <code>realized_pnl</code></td>
+      <td>Append-only execution ledger recording every buy, sell, and auto square-off order.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h1>6. Authentication & Authorization Systems</h1>
+<p>PaperBull implements dual registration and authentication strategies:</p>
+<ol>
+  <li><strong>Email / Password Registration</strong>: Password hashed using <code>bcrypt</code> with 10 salt rounds before storage in <code>user_auth.password_hash</code>.</li>
+  <li><strong>Google OAuth 2.0</strong>: Implemented via Passport.js <code>GoogleStrategy</code>. Automatically links Google profiles by email address or provisions a new user with ₹1,00,000.00 virtual capital. Redirection passes an encoded Base64 user payload back to <code>/auth/callback.html</code> which saves the session in client <code>localStorage</code>.</li>
+</ol>
+
+<h1>7. Dashboard Execution Lifecycle</h1>
+<p>When <code>index.html</code> opens in the browser:</p>
+<ol>
+  <li><code>dashboard.js</code> determines current market open/close state via <code>market-hours.js</code>.</li>
+  <li>Dispatches 6 parallel HTTP GET requests to <code>nse-node</code> (Port 5000):
+    <ul>
+      <li><code>/api/header-indices</code> ➔ Ticker bar</li>
+      <li><code>/api/52week-high</code> ➔ Breakout cards</li>
+      <li><code>/api/gainers?category=NIFTY</code> ➔ Movers table</li>
+      <li><code>/api/currency-snapshot</code> ➔ Currency table</li>
+      <li><code>/api/ipos</code> ➔ AI IPO table</li>
+      <li><code>/api/news</code> ➔ Market news feed</li>
+    </ul>
+  </li>
+  <li>Reads <code>localStorage</code> user session and queries <code>paperbull-node</code> (Port 8000) <code>/api/portfolio/:email</code> to render sidebar investment summary.</li>
+</ol>
+
+<h1>8. Stock Search & Screening Algorithm</h1>
+<p>The Stock Directory in <code>stocks.js</code> screens 2,000+ equities using multi-stage filtering:</p>
+<pre>
+Fuzzy Text Match (Symbol / Name)
+  └── Sector Filter Checkboxes (IT, Banking, Energy, FMCG...)
+        └── Market Cap Bucket (Large, Mid, Small)
+              └── Index Membership (Nifty 50, Bank Nifty, Fin Nifty...)
+                    └── Price Slider Range (Min <= Price <= Max)
+                          └── Market Cap Cr Slider (Min <= Cap <= Max)
+                                └── P/E Ratio Slider (Min <= PE <= Max)
+</pre>
+
+<h1>9. Stock Details Page</h1>
+<p>When a stock is selected, <code>StockDetailsPage</code> executes 5 background tasks:</p>
+<ul>
+  <li>Fetches quote details & fundamentals from <code>GET /api/stock/:symbol</code>.</li>
+  <li>Fetches historical series points from <code>GET /api/series/:symbol?range=1D</code>.</li>
+  <li>Fetches quarterly/yearly income financials from <code>GET /api/financials/:symbol</code>.</li>
+  <li>Fetches sector peers from <code>GET /api/similar/:symbol</code>.</li>
+  <li>Resolves corporate logo via <code>PBLogos</code> (Brandfetch CDN or SVG avatar fallback).</li>
+</ul>
+
+<h1>10. Portfolio & Financial Calculations</h1>
+
+<div class="formula-box">
+  Weighted Average Buy Price:<br>
+  AvgPrice_new = [ (AvgPrice_current × Qty_current) + (Price_buy × Qty_buy) ] / (Qty_current + Qty_buy)
+</div>
+
+<div class="formula-box">
+  Current Holding Value = Qty_held × LTP
+</div>
+
+<div class="formula-box">
+  Total Invested Capital = ∑ (Qty_i × AvgPrice_i)
+</div>
+
+<div class="formula-box">
+  Unrealized P&L = Total Portfolio Value - Total Invested Capital = ∑ [ (LTP_i - AvgPrice_i) × Qty_i ]
+</div>
+
+<div class="formula-box">
+  Realized P&L (per sell order) = (Price_sell - AvgPrice_holding) × Qty_sold
+</div>
+
+<h1>11. Order Execution & Product Mechanics</h1>
+<ul>
+  <li><strong>Delivery (CNC - Cash and Carry)</strong>: Position held across multiple trading sessions indefinitely.</li>
+  <li><strong>Intraday (MIS - Margin Intraday Square-off)</strong>: Position intended for same-day liquidation. Tracked separately in <code>intraday_qty</code> bucket. Force-sold at 3:15 PM IST by server-side cron job.</li>
+  <li><strong>Market Order</strong>: Executes instantly at current Last Traded Price (LTP).</li>
+  <li><strong>Trigger Order</strong>: Executes when market price reaches user-configured trigger price.</li>
+</ul>
+
+<h1>12. End-to-End Transaction Flow</h1>
+<ol>
+  <li>User selects stock, quantity, side ('buy'), product ('Delivery'), and clicks "Place Order".</li>
+  <li>Frontend validates quantity > 0 and available funds >= (qty × price).</li>
+  <li>Frontend dispatches <code>POST http://localhost:8000/api/portfolio/order</code>.</li>
+  <li>Backend begins PostgreSQL transaction (<code>BEGIN</code>), locks user and holding records (<code>FOR UPDATE</code>).</li>
+  <li>Backend updates weighted average buy price, adjusts cash balance, inserts record into <code>orders</code> table, updates <code>holdings</code> table, and commits transaction (<code>COMMIT</code>).</li>
+  <li>Backend returns success response with new balance.</li>
+  <li>Frontend updates state, re-renders holdings table, order book, and displays success toast.</li>
+</ol>
+
+<h1>13. Complete API Route Specification</h1>
+<p>All endpoints across <code>paperbull-node</code> (Port 8000) and <code>nse-node</code> (Port 5000) are fully detailed in Section 3 and the primary codebase guide artifact.</p>
+
+<h1>14. External API Integrations</h1>
+<ul>
+  <li><strong>Yahoo Finance API</strong>: Queries chart points, quotes, and income statements.</li>
+  <li><strong>NSE Archives (NSE India)</strong>: Parses official <code>EQUITY_L.csv</code> equity universe and live mover feeds.</li>
+  <li><strong>Google Gemini API (3.1 Flash Lite & Flash)</strong>: Powers Google Search Grounding for live market news, IPO grey market scraping, and contextual AI chat.</li>
+  <li><strong>Brandfetch CDN API</strong>: Fetches company brand logos.</li>
+</ul>
+
+<h1>15. Company Logo Pipeline & Fallback Resolution</h1>
+<ol>
+  <li>Check in-memory and <code>localStorage</code> logo cache.</li>
+  <li>Match custom known domain mapping (e.g. RELIANCE ➔ relianceindustries.com).</li>
+  <li>Construct Brandfetch CDN URL.</li>
+  <li>If Brandfetch returns 404 or fails, dynamically render SVG avatar badge displaying stock initial (e.g. 'R' on colored background).</li>
+</ol>
+
+<h1>16. Charting Engine & Mathematical Transformations</h1>
+<p>SVG chart coordinates (X_i, Y_i) for price point P_i on canvas width W and height H:</p>
+<div class="formula-box">
+  X_i = (i / [N - 1]) × W<br><br>
+  Y_i = H - [ (P_i - P_min) / (P_max - P_min) ] × (H - 20) - 10
+</div>
+
+<h1>17. Environment Variables Reference</h1>
+<table>
+  <thead>
+    <tr>
+      <th>Variable Name</th>
+      <th>Service</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>PORT</code></td><td>Both</td><td>HTTP server listening port (8000 for backend, 5000 for market).</td></tr>
+    <tr><td><code>DB_HOST</code></td><td>paperbull-node</td><td>PostgreSQL database hostname (default: localhost).</td></tr>
+    <tr><td><code>DB_PORT</code></td><td>paperbull-node</td><td>PostgreSQL database port (default: 5432).</td></tr>
+    <tr><td><code>DB_USER</code></td><td>paperbull-node</td><td>PostgreSQL database username.</td></tr>
+    <tr><td><code>DB_PASSWORD</code></td><td>paperbull-node</td><td>PostgreSQL database password.</td></tr>
+    <tr><td><code>DB_NAME</code></td><td>paperbull-node</td><td>PostgreSQL database name (paperbull).</td></tr>
+    <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>paperbull-node</td><td>Google OAuth 2.0 Client ID.</td></tr>
+    <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>paperbull-node</td><td>Google OAuth 2.0 Client Secret.</td></tr>
+    <tr><td><code>GEMINI_API_KEY</code></td><td>nse-node</td><td>Google Gemini API key for AI features.</td></tr>
+    <tr><td><code>BRANDFETCH_CLIENT_ID</code></td><td>nse-node</td><td>Brandfetch API key for logo CDN.</td></tr>
+  </tbody>
+</table>
+
+<h1>18. Deep Dive into Essential Functions</h1>
+<h3>1. <code>squareOffHolding(pool, holdingId, todayIso)</code></h3>
+<p>Authoritative server-side intraday liquidation function. Runs inside PostgreSQL transaction, locks database record (<code>FOR UPDATE</code>), fetches closing price, calculates realized P&L, inserts audit order log, and credits user wallet.</p>
+
+<h3>2. <code>buildStocksSnapshot()</code></h3>
+<p>Assembles stock quotes and sparklines for 2,000+ equities in non-blocking rotating batches of 150 symbols per cycle.</p>
+
+<h1>19. Complete User Journey</h1>
+<p>User visits site ➔ Views live dashboard ➔ Registers / Logs in (receives ₹1,00,000) ➔ Searches stock in screener ➔ Views stock details and AI analysis ➔ Executes paper buy trade ➔ Transaction settled atomically in DB ➔ Views updated portfolio & order history.</p>
+
+<h1>20. Software Design Patterns Applied</h1>
+<ul>
+  <li><strong>Microservices Pattern</strong>: Decoupled auth/ledger service (Port 8000) from market data/AI service (Port 5000).</li>
+  <li><strong>Repository Pattern</strong>: Parameterized SQL queries isolated in route modules.</li>
+  <li><strong>Singleton Pattern</strong>: Shared database pool and persistent in-memory stock caches.</li>
+  <li><strong>Autonomous Agent Pattern</strong>: AI agents periodically scrap market news and IPO data in background.</li>
+  <li><strong>Circuit Breaker / Fallback Pattern</strong>: Fallback from NSE to Yahoo Finance, and from Brandfetch to SVG avatars.</li>
+</ul>
+
+<h1>21. Performance Optimization Strategies</h1>
+<ul>
+  <li>60-second snapshot caching for 2,000+ stock quotes.</li>
+  <li>Rotating intraday sparkline batches (150 symbols per cycle).</li>
+  <li>PostgreSQL connection pooling (<code>pg.Pool</code>).</li>
+  <li>Database indexing on <code>holdings(user_id)</code> and <code>orders(user_id, created_at DESC)</code>.</li>
+</ul>
+
+<h1>22. Security Architecture & Threat Mitigation</h1>
+<ul>
+  <li>Bcrypt password hashing with 10 salt rounds.</li>
+  <li>100% parameterized SQL queries preventing SQL Injection.</li>
+  <li>Input sanitization on AI outputs preventing markdown link injection.</li>
+  <li>Environment variable isolation via <code>.env</code>.</li>
+</ul>
+
+<h1>23. Error Handling & Fault Tolerance</h1>
+<ul>
+  <li>Atomic database transactions (<code>BEGIN ... ROLLBACK</code>) prevent corrupted portfolio states.</li>
+  <li>Graceful frontend fallback to <code>localStorage</code> if backend services are offline.</li>
+  <li>Automatic retry loops for AI agents upon encountering malformed JSON outputs.</li>
+</ul>
+
+<h1>24. Architectural Diagrams</h1>
+<pre>
++-------------------------------------------------------------------+
+|                           USER BROWSER                            |
++-------------------------------------------------------------------+
+          |                                       |
+          v (Port 5000)                           v (Port 8000)
++-----------------------------------+   +---------------------------+
+|             nse-node              |   |      paperbull-node       |
+|  - 2000+ Stock Screener Cache     |   |  - Auth & Google OAuth    |
+|  - Sparkline & Chart Engine       |   |  - Portfolio Ledger       |
+|  - Gemini AI Chat & News/IPO      |   |  - Atomic Order Settlement|
++-----------------------------------+   |  - EOD Intraday Cron Job  |
+     |           |          |           +---------------------------+
+     v           v          v                         |
+  [Yahoo]      [NSE]     [Gemini]                     v
+  Finance     Archives      AI                  [(PostgreSQL)]
+</pre>
+
+<h1>25. Mentor-Style Explanations</h1>
+<h3>Feature: Intraday (MIS) Auto Square-Off</h3>
+<ul>
+  <li><strong>Technical Explanation</strong>: Scheduled background pass executing SQL transactions with row-level locks (<code>FOR UPDATE</code>) to force-sell intraday positions past 3:15 PM IST.</li>
+  <li><strong>Simple Explanation</strong>: If you buy intraday stock and forget to sell before the market closes, PaperBull automatically sells it for you at the market price right before closing.</li>
+  <li><strong>Real-World Analogy</strong>: Like renting a bicycle with a rule to return it by 5:00 PM. If you haven't returned it by 4:55 PM, the shop sends an employee to pick it up and return your deposit automatically.</li>
+</ul>
+
+<h1>26. Hidden Logic, Edge Cases & Improvements</h1>
+<ul>
+  <li><strong>Smart Implementation</strong>: Zero-dependency vector math projecting raw prices directly into SVG path coordinates.</li>
+  <li><strong>Edge Case</strong>: Market hours module validates Monday–Friday but currently does not filter national exchange holidays.</li>
+  <li><strong>Scalability Improvement</strong>: Replace in-memory quote caching with Redis and introduce WebSockets for real-time price streaming.</li>
+</ul>
+
+<h1>27. Developer Learning Roadmap</h1>
+<ol>
+  <li><code>database.sql</code> (Data Models)</li>
+  <li><code>paperbull-node/db.js</code> & <code>server.js</code> (Backend Entry)</li>
+  <li><code>paperbull-node/marketHours.js</code> (IST Time Calculations)</li>
+  <li><code>paperbull-node/routes/auth.js</code> (Authentication)</li>
+  <li><code>paperbull-node/routes/portfolio.js</code> & <code>intradaySquareOff.js</code> (Trading Settlement)</li>
+  <li><code>nse-node/market.js</code> (2,000+ Stock Screener Engine)</li>
+  <li><code>nse-node/agents/</code> (Gemini AI Agents)</li>
+  <li><code>frontend/dashboard/</code> JS modules (Client UI & React App)</li>
+</ol>
+
+</div>
+</body>
+</html>
